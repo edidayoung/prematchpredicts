@@ -1,8 +1,9 @@
 import { createFileRoute, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { isAuthenticated, logout } from "@/lib/auth";
-import { LayoutDashboard, TrendingUp, LogOut } from "lucide-react";
+import { LayoutDashboard, TrendingUp, LogOut, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardLayout,
@@ -11,12 +12,21 @@ export const Route = createFileRoute("/dashboard")({
 function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
+  const isMobile = useIsMobile();
+  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
 
   useEffect(() => {
     if (!isAuthenticated()) {
       navigate({ to: "/login" });
     }
   }, [navigate]);
+
+  // Auto-close sidebar on mobile when route changes
+  useEffect(() => {
+    if (isMobile) {
+      setSidebarOpen(false);
+    }
+  }, [location.pathname, isMobile]);
 
   const handleLogout = () => {
     logout();
@@ -41,12 +51,32 @@ function DashboardLayout() {
 
   return (
     <div className="flex min-h-screen bg-background">
+      {/* Mobile overlay */}
+      {isMobile && sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-card">
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 border-r border-border bg-card transition-transform duration-300 ease-in-out ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        } lg:static lg:translate-x-0`}
+      >
         <div className="flex h-full flex-col">
-          {/* Logo */}
-          <div className="flex h-20 items-center border-b border-border px-6">
+          {/* Header with close button on mobile */}
+          <div className="flex h-20 items-center justify-between border-b border-border px-6">
             <img src="/Logo.png" alt="PrematchPredicts" className="h-10 w-auto" />
+            {isMobile && (
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="lg:hidden"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            )}
           </div>
 
           {/* Navigation */}
@@ -54,7 +84,7 @@ function DashboardLayout() {
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const active = isActive(tab.path);
-              
+
               return (
                 <button
                   key={tab.path}
@@ -66,7 +96,7 @@ function DashboardLayout() {
                   }`}
                 >
                   <Icon className="h-5 w-5" />
-                  {tab.name}
+                  <span className="flex-1 text-left">{tab.name}</span>
                 </button>
               );
             })}
@@ -91,8 +121,22 @@ function DashboardLayout() {
       </aside>
 
       {/* Main Content */}
-      <main className="ml-64 flex-1">
-        <Outlet />
+      <main className="flex flex-1 flex-col">
+        {/* Mobile header with hamburger */}
+        <div className="flex items-center gap-3 border-b border-border bg-card p-4 lg:hidden">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="rounded-lg p-2 hover:bg-secondary"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <img src="/Logo.png" alt="PrematchPredicts" className="h-6 w-auto" />
+        </div>
+
+        {/* Page content */}
+        <div className="flex-1 overflow-auto">
+          <Outlet />
+        </div>
       </main>
     </div>
   );
