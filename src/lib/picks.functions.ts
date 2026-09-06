@@ -38,7 +38,7 @@ export type BoardData = {
 };
 
 const STARTING_BANKROLL = 1000; // NGN 1,000 starting bankroll
-const STAKE = 10; // NGN 10 per bet
+const STAKE = 100; // NGN 100 per bet
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);

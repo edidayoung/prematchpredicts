@@ -114,7 +114,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       bookmaker: best.bookmaker,
       confidence: best.confidence,
       reasoning: best.reasoning,
-      stake: 10,
+      stake: 100,
     }).select().single();
 
     if (error) throw error;
