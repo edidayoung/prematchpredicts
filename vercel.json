@@ -1,12 +1,10 @@
 {
-  "crons": [
-    {
-      "path": "/api/cron/generate-pick",
-      "schedule": "0 6 * * *"
-    },
-    {
-      "path": "/api/cron/settle-games",
-      "schedule": "0 */2 * * *"
-    }
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/client",
+  "rewrites": [
+    { "source": "/assets/(.*)", "destination": "/assets/$1" },
+    { "source": "/manifest.json", "destination": "/manifest.json" },
+    { "source": "/(.*)\\.(png|jpg|jpeg|gif|svg|ico|json|html)", "destination": "/$1.$2" },
+    { "source": "/(.*)", "destination": "/api/index" }
   ]
 }

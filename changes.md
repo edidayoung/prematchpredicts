@@ -1,5 +1,20 @@
 # Recent Changes
 
+## Cron Jobs Removed (Vercel Paid Feature)
+- **Date**: September 6, 2026
+- **Status**: ✅ REMOVED
+- **Description**: Removed all cron job functionality as it requires Vercel Pro ($20/month)
+- **Files Deleted**:
+  - `/api/cron/generate-pick.ts` - Daily pick generation (was scheduled 6 AM UTC)
+  - `/api/cron/settle-games.ts` - Game settlement every 2 hours
+  - `/src/integrations/supabase/cron-auth.ts` - Cron authentication helper
+- **Files Modified**:
+  - `/vercel.json` - Removed `crons` configuration array
+  - `/.env` - Removed `CRON_SECRET` environment variable
+  - `/api/picks/generate.ts` - Removed cron secret verification
+  - `/api/picks/settle.ts` - Removed cron secret verification
+- **Notes**: These endpoints are now manual-only. Can be called directly via HTTP POST if needed for testing/admin purposes.
+
 ## Bankroll Configuration Verified & Tested
 - **Date**: September 6, 2026
 - **Status**: ✅ VERIFIED & CLEANED UP

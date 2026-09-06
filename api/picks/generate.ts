@@ -1,6 +1,6 @@
 /**
  * API Endpoint: Generate Daily Pick
- * Called by cron job to generate today's pick
+ * Manual endpoint to generate today's pick
  */
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
@@ -8,12 +8,6 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  // Verify internal request
-  const cronSecret = req.headers["x-cron-secret"];
-  if (cronSecret !== process.env.CRON_SECRET) {
-    return res.status(401).json({ error: "Unauthorized" });
   }
 
   try {
