@@ -1,39 +1,29 @@
 // Vercel serverless function for TanStack Start
-export default async function handler(req, res) {
+import handler from '../dist/server/server.js';
+
+export default async function(req, res) {
+  const request = new Request(new URL(req.url, `https://${req.headers.host}`), {
+    method: req.method,
+    headers: req.headers,
+    body: ['GET', 'HEAD'].includes(req.method) ? undefined : req.body,
+  });
+
   try {
-    // Dynamically import the server handler
-    const serverModule = await import('../dist/server/server.js');
-    const server = serverModule.default || serverModule;
-
-    // Create Web Request from Node.js request
-    const url = new URL(req.url || '/', `https://${req.headers.host}`);
-    const request = new Request(url.toString(), {
-      method: req.method,
-      headers: new Headers(req.headers),
-      body: ['GET', 'HEAD'].includes(req.method) ? undefined : req.body,
-    });
-
-    // Call the server fetch handler
-    const response = await server.fetch(request, {}, {});
-    
-    // Set response status
-    res.status(response.status);
+    const response = await handler.fetch(request, {}, {});
     
     // Set response headers
     response.headers.forEach((value, key) => {
       res.setHeader(key, value);
     });
     
+    // Set status
+    res.status(response.status);
+    
     // Send body
-    if (response.body) {
-      const body = await response.text();
-      res.send(body);
-    } else {
-      res.end();
-    }
+    const body = await response.text();
+    res.send(body);
   } catch (error) {
     console.error('Server error:', error);
-    res.status(500).send('Internal Server Error: ' + error.message);
+    res.status(500).send('Internal Server Error');
   }
 }
-
