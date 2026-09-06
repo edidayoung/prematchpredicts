@@ -1,0 +1,201 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { getBoard, type Pick } from "@/lib/picks.functions";
+import { useAutoRefresh } from "@/hooks/use-auto-refresh";
+
+export const Route = createFileRoute("/dashboard/predictions")({
+  loader: () => getBoard(),
+  component: PredictionsPage,
+});
+
+function StatusTag({ status }: { status: string }) {
+  const tone =
+    status === "won"
+      ? "bg-success/15 text-success border-success/30"
+      : status === "lost"
+        ? "bg-destructive/15 text-destructive border-destructive/30"
+        : status === "push"
+          ? "bg-muted text-muted-foreground border-border"
+          : "bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30";
+  const label = status === "pending" ? "Awaiting result" : status.toUpperCase();
+  return (
+    <span className={`rounded-full border px-3 py-1 text-xs font-semibold tracking-wide ${tone}`}>
+      {label}
+    </span>
+  );
+}
+
+function ConfidenceMeter({ value }: { value: number }) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+          Confidence
+        </span>
+        <span className="font-mono text-2xl font-bold text-[#10B981]">{value}%</span>
+      </div>
+      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-secondary">
+        <div 
+          className="h-full rounded-full bg-[#10B981]" 
+          style={{ width: `${value}%` }} 
+        />
+      </div>
+    </div>
+  );
+}
+
+function tipOff(iso: string) {
+  return new Date(iso).toLocaleString(undefined, {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function TodayCard({ pick }: { pick: Pick }) {
+  return (
+    <article className="rounded-2xl border border-border bg-card p-6 shadow-lg sm:p-8">
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="rounded-full bg-[#10B981] px-3 py-1 text-xs font-bold uppercase tracking-wider text-white">
+          Pick of the day
+        </span>
+        <span className="text-xs uppercase tracking-wider text-muted-foreground">
+          {pick.sport_title}
+        </span>
+        <StatusTag status={pick.status} />
+      </div>
+
+      <h2 className="mt-5 text-2xl font-bold leading-tight text-foreground sm:text-3xl">
+        {pick.away_team} <span className="text-muted-foreground">at</span> {pick.home_team}
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">Tip-off {tipOff(pick.commence_time)}</p>
+
+      <div className="mt-6 grid gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border border-border bg-secondary/40 p-4">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Selection</p>
+          <p className="mt-1 font-mono text-xl font-bold text-foreground">
+            {pick.selection} {Number(pick.line)}
+          </p>
+        </div>
+        <div className="rounded-xl border border-border bg-secondary/40 p-4">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Odds</p>
+          <p className="mt-1 font-mono text-xl font-bold text-success">{Number(pick.odds).toFixed(2)}</p>
+        </div>
+        <div className="rounded-xl border border-border bg-secondary/40 p-4">
+          <p className="text-xs uppercase tracking-wider text-muted-foreground">Bookmaker</p>
+          <p className="mt-1 truncate text-lg font-semibold text-foreground">{pick.bookmaker}</p>
+        </div>
+      </div>
+
+      <div className="mt-6">
+        <ConfidenceMeter value={pick.confidence} />
+      </div>
+
+      <div className="mt-6 rounded-xl border border-border bg-secondary/20 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          Analysis
+        </p>
+        <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+          {pick.reasoning}
+        </p>
+      </div>
+
+      {/* Model Status Indicator */}
+      {pick.reasoning.includes('STATISTICAL MODEL') ? (
+        <div className="mt-4 rounded-xl border border-success/30 bg-success/10 px-4 py-2 text-xs">
+          <span className="font-semibold text-success">✅ Using Real Team Stats</span>
+          <span className="ml-2 text-success/80">- Prediction based on historical performance data</span>
+        </div>
+      ) : (
+        <div className="mt-4 rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-xs">
+          <span className="font-semibold text-yellow-600">⚠️ Stats Not Available</span>
+          <span className="ml-2 text-yellow-600/80">- Using bookmaker odds only</span>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function PredictionsPage() {
+  const { today, history, message } = Route.useLoaderData();
+  
+  // Auto-refresh every 5 minutes
+  useAutoRefresh(5);
+
+  return (
+    <div className="min-h-screen p-8">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-foreground">Daily Predictions</h1>
+        <p className="mt-2 text-muted-foreground">
+          One carefully selected prediction every day, priced around 2.0 odds
+        </p>
+      </div>
+
+      {message && (
+        <div className="mb-6 rounded-xl border border-border bg-secondary/40 p-4 text-sm text-muted-foreground">
+          {message}
+        </div>
+      )}
+
+      {/* Today's Pick */}
+      {today ? (
+        <TodayCard pick={today} />
+      ) : (
+        <div className="rounded-2xl border border-dashed border-border p-10 text-center text-muted-foreground">
+          <p className="text-lg font-semibold">No qualifying game yet today</p>
+          <p className="mt-2 text-sm">Check back closer to tip-off time</p>
+        </div>
+      )}
+
+      {/* Past Picks */}
+      <section className="mt-10">
+        <h2 className="mb-4 text-xl font-bold text-foreground">Past Picks</h2>
+        {history.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border p-10 text-center">
+            <p className="text-muted-foreground">
+              The record starts building from the first settled pick
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {history.map((pick) => (
+              <div
+                key={pick.id}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-secondary/40"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold text-foreground">
+                    {pick.away_team} at {pick.home_team}
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {pick.pick_date} · {pick.selection} {Number(pick.line)} @ {Number(pick.odds).toFixed(2)} ·{" "}
+                    {pick.confidence}% confidence
+                    {pick.final_total != null && ` · final total ${Number(pick.final_total)}`}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  {pick.profit != null && (
+                    <span
+                      className={`font-mono text-sm font-semibold ${
+                        Number(pick.profit) > 0
+                          ? "text-success"
+                          : Number(pick.profit) < 0
+                            ? "text-destructive"
+                            : "text-muted-foreground"
+                      }`}
+                    >
+                      {Number(pick.profit) > 0 ? '+' : ''}${Number(pick.profit).toFixed(2)}
+                    </span>
+                  )}
+                  <StatusTag status={pick.status} />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}

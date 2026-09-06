@@ -143,7 +143,7 @@
   }
 }
 
-/* --- Two-Odd Daily: courtside dark theme -------------------------------- */
+/* --- PrematchPredict: Modern Dark Theme (Logo Colors) ------------------- */
 :root {
   --background: oklch(0.16 0.015 265);
   --foreground: oklch(0.96 0.005 265);
@@ -151,21 +151,24 @@
   --card-foreground: oklch(0.96 0.005 265);
   --popover: oklch(0.21 0.018 265);
   --popover-foreground: oklch(0.96 0.005 265);
-  --primary: oklch(0.74 0.17 55);
-  --primary-foreground: oklch(0.18 0.02 60);
+  /* Primary green from logo #10B981 */
+  --primary: oklch(0.67 0.15 165);
+  --primary-foreground: oklch(0.98 0.005 265);
   --secondary: oklch(0.27 0.02 265);
   --secondary-foreground: oklch(0.96 0.005 265);
   --muted: oklch(0.27 0.02 265);
   --muted-foreground: oklch(0.72 0.02 265);
-  --accent: oklch(0.74 0.17 55);
-  --accent-foreground: oklch(0.18 0.02 60);
+  /* Accent matches primary green */
+  --accent: oklch(0.67 0.15 165);
+  --accent-foreground: oklch(0.98 0.005 265);
   --destructive: oklch(0.63 0.2 22);
   --destructive-foreground: oklch(0.98 0.005 265);
-  --success: oklch(0.76 0.16 155);
-  --success-foreground: oklch(0.18 0.02 160);
+  /* Success green matches logo */
+  --success: oklch(0.67 0.15 165);
+  --success-foreground: oklch(0.98 0.005 265);
   --border: oklch(0.3 0.02 265);
   --input: oklch(0.3 0.02 265);
-  --ring: oklch(0.74 0.17 55);
+  --ring: oklch(0.67 0.15 165);
 }
 
 @theme inline {
