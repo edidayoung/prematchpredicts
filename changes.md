@@ -1,5 +1,27 @@
 # Recent Changes
 
+## Debug Logging Added for Settlement Issues
+- **Date**: September 8, 2026
+- **Status**: ✅ ADDED
+- **Description**: Added comprehensive debug logging to trace why Day 2 game isn't settling
+- **Files Modified**:
+  - `/src/lib/picks.functions.ts` - Added settlement debug logs
+  - `/src/lib/odds.server.ts` - Added fetchFinalTotal debug logs
+- **What to Check**: 
+  - Open browser DevTools Console (F12)
+  - Refresh the dashboard page
+  - Look for logs starting with `[SETTLEMENT]` and `[FETCH_FINAL_TOTAL]`
+  - This will show exactly why games aren't settling
+- **Next Steps**: Based on logs, we'll fix the root cause
+
+## Stake Updated to NGN100
+- **Date**: September 8, 2026  
+- **Status**: ✅ COMPLETED
+- **Description**: Increased stake from NGN10 to NGN100 per game (fixed cap)
+- **Files Modified**:
+  - `/src/lib/picks.functions.ts` - STAKE constant = 100
+  - `/api/picks/generate.ts` - stake value = 100
+
 ## Cron Jobs Removed (Vercel Paid Feature)
 - **Date**: September 6, 2026
 - **Status**: ✅ REMOVED

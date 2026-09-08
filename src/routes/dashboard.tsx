@@ -1,9 +1,10 @@
 import { createFileRoute, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { isAuthenticated, logout } from "@/lib/auth";
-import { LayoutDashboard, TrendingUp, LogOut, Menu, X } from "lucide-react";
+import { LayoutDashboard, TrendingUp, LogOut, Menu, X, Target, Flame } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { getBoard } from "@/lib/picks.functions";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardLayout,
@@ -13,7 +14,20 @@ function DashboardLayout() {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
-  const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [streak, setStreak] = useState(0);
+
+  // Initialize sidebar state after mount to avoid hydration mismatch
+  useEffect(() => {
+    setSidebarOpen(!isMobile);
+  }, [isMobile]);
+
+  // Fetch stats for streak
+  useEffect(() => {
+    getBoard().then((data) => {
+      setStreak(data.stats.streak);
+    });
+  }, [location.pathname]); // Refresh on route change
 
   useEffect(() => {
     if (!isAuthenticated()) {
@@ -36,6 +50,7 @@ function DashboardLayout() {
   const tabs = [
     { name: "Overview", path: "/dashboard", icon: LayoutDashboard },
     { name: "Predictions", path: "/dashboard/predictions", icon: TrendingUp },
+    { name: "Hits", path: "/dashboard/hits", icon: Target },
   ];
 
   const isActive = (path: string) => {
@@ -101,6 +116,34 @@ function DashboardLayout() {
               );
             })}
           </nav>
+
+          {/* Streak Indicator */}
+          {streak !== 0 && (
+            <div className="mx-4 mb-4 rounded-xl border border-border bg-secondary/20 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className={`relative rounded-lg p-2 ${
+                  streak > 0 ? "bg-success/20" : "bg-destructive/20"
+                }`}>
+                  <Flame className={`h-5 w-5 ${
+                    streak > 0 ? "text-success" : "text-destructive"
+                  }`} />
+                  <span className={`absolute inset-0 flex items-center justify-center text-xs font-bold ${
+                    streak > 0 ? "text-success" : "text-destructive"
+                  }`}>
+                    {Math.abs(streak)}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Current Streak</p>
+                  <p className={`text-sm font-bold ${
+                    streak > 0 ? "text-success" : "text-destructive"
+                  }`}>
+                    {Math.abs(streak)} {streak > 0 ? "Win" : "Loss"}{Math.abs(streak) > 1 ? "s" : ""}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* User Section */}
           <div className="border-t border-border p-4">

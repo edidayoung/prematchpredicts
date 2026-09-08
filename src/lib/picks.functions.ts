@@ -86,6 +86,10 @@ export const getBoard = createServerFn({ method: "GET" }).handler(async (): Prom
   const day = todayIso();
 
   // 1. Settle anything that has finished since the last visit.
+  console.log("========== SETTLEMENT CHECK ==========");
+  console.log(`Current time: ${new Date().toISOString()}`);
+  console.log(`Checking for games that started before: ${new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()}`);
+  
   if (oddsApiKey) {
     const { data: pending } = await supabaseAdmin
       .from("daily_picks")
@@ -93,20 +97,47 @@ export const getBoard = createServerFn({ method: "GET" }).handler(async (): Prom
       .eq("status", "pending")
       .lt("commence_time", new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString());
 
-    for (const row of pending ?? []) {
-      const total = await fetchFinalTotal(oddsApiKey, row.sport_key, row.event_id);
-      if (total == null) continue;
-      const line = Number(row.line);
-      const status =
-        total === line ? "push" : (total > line) === (row.selection === "Over") ? "won" : "lost";
-      const profit =
-        status === "push" ? 0 : status === "won" ? Number(row.stake) * (Number(row.odds) - 1) : -Number(row.stake);
-      await supabaseAdmin
-        .from("daily_picks")
-        .update({ status, final_total: total, profit, settled_at: new Date().toISOString() })
-        .eq("id", row.id);
+    console.log(`Found ${pending?.length ?? 0} pending games to check`);
+    
+    if (pending && pending.length > 0) {
+      for (const row of pending) {
+        console.log(`\n--- Checking game: ${row.away_team} @ ${row.home_team} ---`);
+        console.log(`Game ID: ${row.id}`);
+        console.log(`Event ID: ${row.event_id}`);
+        console.log(`Sport: ${row.sport_key}`);
+        console.log(`Commenced: ${row.commence_time}`);
+        console.log(`Selection: ${row.selection} ${row.line}`);
+        
+        const total = await fetchFinalTotal(oddsApiKey, row.sport_key, row.event_id);
+        console.log(`Final total from API: ${total}`);
+        
+        if (total == null) {
+          console.log(`❌ No final score available yet - skipping`);
+          continue;
+        }
+        
+        const line = Number(row.line);
+        const status =
+          total === line ? "push" : (total > line) === (row.selection === "Over") ? "won" : "lost";
+        const profit =
+          status === "push" ? 0 : status === "won" ? Number(row.stake) * (Number(row.odds) - 1) : -Number(row.stake);
+        
+        console.log(`✅ SETTLING: Total=${total}, Line=${line}, Status=${status.toUpperCase()}, Profit=₦${profit}`);
+        
+        await supabaseAdmin
+          .from("daily_picks")
+          .update({ status, final_total: total, profit, settled_at: new Date().toISOString() })
+          .eq("id", row.id);
+        
+        console.log(`✅ Database updated successfully`);
+      }
+    } else {
+      console.log("ℹ️ No pending games found that meet the criteria");
     }
+  } else {
+    console.log("⚠️ No Odds API key - settlement skipped");
   }
+  console.log("======================================\n");
 
   // 2. Make sure today has a pick.
   const { data: existingToday } = await supabaseAdmin

@@ -1,6 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getBoard, type Pick } from "@/lib/picks.functions";
 import { useAutoRefresh } from "@/hooks/use-auto-refresh";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/dashboard/predictions")({
   loader: () => getBoard(),
@@ -40,6 +47,110 @@ function ConfidenceMeter({ value }: { value: number }) {
         />
       </div>
     </div>
+  );
+}
+
+function PickDetailModal({ pick, open, onClose }: { pick: Pick; open: boolean; onClose: () => void }) {
+  const profit = pick.profit != null ? Number(pick.profit) : null;
+  const finalTotal = pick.final_total != null ? Number(pick.final_total) : null;
+  
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl">
+            {pick.away_team} <span className="text-muted-foreground">at</span> {pick.home_team}
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-6">
+          {/* Status and Date */}
+          <div className="flex flex-wrap items-center gap-3">
+            <StatusTag status={pick.status} />
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">
+              {pick.sport_title}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              {tipOff(pick.commence_time)}
+            </span>
+          </div>
+
+          {/* Selection Details */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-xl border border-border bg-secondary/40 p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Selection</p>
+              <p className="mt-1 font-mono text-xl font-bold text-foreground">
+                {pick.selection} {Number(pick.line)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-border bg-secondary/40 p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Odds</p>
+              <p className="mt-1 font-mono text-xl font-bold text-success">{Number(pick.odds).toFixed(2)}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-secondary/40 p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Stake</p>
+              <p className="mt-1 font-mono text-xl font-bold text-foreground">₦{Number(pick.stake).toFixed(2)}</p>
+            </div>
+          </div>
+
+          {/* Final Score & Result (if settled) */}
+          {pick.status !== "pending" && finalTotal !== null && (
+            <div className="rounded-xl border border-border bg-secondary/20 p-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Final Total</p>
+                  <p className="mt-1 font-mono text-2xl font-bold text-foreground">{finalTotal}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Profit/Loss</p>
+                  <p className={`mt-1 font-mono text-2xl font-bold ${
+                    profit && profit > 0 
+                      ? "text-success" 
+                      : profit && profit < 0 
+                        ? "text-destructive" 
+                        : "text-muted-foreground"
+                  }`}>
+                    {profit !== null ? `${profit > 0 ? '+' : ''}₦${profit.toFixed(2)}` : '₦0.00'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Confidence */}
+          <ConfidenceMeter value={pick.confidence} />
+
+          {/* Analysis */}
+          <div className="rounded-xl border border-border bg-secondary/20 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Analysis
+            </p>
+            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+              {pick.reasoning}
+            </p>
+          </div>
+
+          {/* Bookmaker */}
+          <div className="rounded-xl border border-border bg-secondary/20 p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Bookmaker</p>
+            <p className="mt-1 text-lg font-semibold text-foreground">{pick.bookmaker}</p>
+          </div>
+
+          {/* Model Status */}
+          {pick.reasoning.includes('STATISTICAL MODEL') ? (
+            <div className="rounded-xl border border-success/30 bg-success/10 px-4 py-2 text-xs">
+              <span className="font-semibold text-success">✅ Using Real Team Stats</span>
+              <span className="ml-2 text-success/80">- Prediction based on historical performance data</span>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-xs">
+              <span className="font-semibold text-yellow-600">⚠️ Stats Not Available</span>
+              <span className="ml-2 text-yellow-600/80">- Using bookmaker odds only</span>
+            </div>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -119,6 +230,7 @@ function TodayCard({ pick }: { pick: Pick }) {
 
 function PredictionsPage() {
   const { today, history, message } = Route.useLoaderData();
+  const [selectedPick, setSelectedPick] = useState<Pick | null>(null);
   
   // Auto-refresh every 5 minutes
   useAutoRefresh(5);
@@ -161,9 +273,10 @@ function PredictionsPage() {
         ) : (
           <div className="space-y-3">
             {history.map((pick) => (
-              <div
+              <button
                 key={pick.id}
-                className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-5 py-4 transition-colors hover:bg-secondary/40"
+                onClick={() => setSelectedPick(pick)}
+                className="flex w-full flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-5 py-4 text-left transition-colors hover:bg-secondary/40 hover:border-[#10B981]/50 cursor-pointer"
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold text-foreground">
@@ -186,16 +299,25 @@ function PredictionsPage() {
                             : "text-muted-foreground"
                       }`}
                     >
-                      {Number(pick.profit) > 0 ? '+' : ''}${Number(pick.profit).toFixed(2)}
+                      {Number(pick.profit) > 0 ? '+' : ''}₦{Number(pick.profit).toFixed(2)}
                     </span>
                   )}
                   <StatusTag status={pick.status} />
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
       </section>
+
+      {/* Detail Modal */}
+      {selectedPick && (
+        <PickDetailModal 
+          pick={selectedPick} 
+          open={!!selectedPick} 
+          onClose={() => setSelectedPick(null)} 
+        />
+      )}
     </div>
   );
 }

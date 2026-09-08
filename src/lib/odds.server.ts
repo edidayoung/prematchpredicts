@@ -336,14 +336,39 @@ export async function fetchFinalTotal(
   eventId: string,
 ): Promise<number | null> {
   try {
-    const events = await getJson<ScoreEvent[]>(
-      `${BASE}/sports/${sportKey}/scores/?apiKey=${apiKey}&daysFrom=3`,
-    );
+    console.log(`[FETCH_FINAL_TOTAL] Requesting scores for sport: ${sportKey}, event: ${eventId}`);
+    const url = `${BASE}/sports/${sportKey}/scores/?apiKey=${apiKey}&daysFrom=3`;
+    
+    const events = await getJson<ScoreEvent[]>(url);
+    console.log(`[FETCH_FINAL_TOTAL] Received ${events?.length ?? 0} events from API`);
+    
     const match = events.find((e) => e.id === eventId);
-    if (!match || !match.completed || !match.scores) return null;
+    
+    if (!match) {
+      console.log(`[FETCH_FINAL_TOTAL] ❌ Event ${eventId} not found in API response`);
+      return null;
+    }
+    
+    console.log(`[FETCH_FINAL_TOTAL] Found event: ${match.home_team} vs ${match.away_team}`);
+    console.log(`[FETCH_FINAL_TOTAL] Completed: ${match.completed}, Has scores: ${!!match.scores}`);
+    
+    if (!match.completed) {
+      console.log(`[FETCH_FINAL_TOTAL] ⏳ Game not completed yet`);
+      return null;
+    }
+    
+    if (!match.scores) {
+      console.log(`[FETCH_FINAL_TOTAL] ❌ No scores available`);
+      return null;
+    }
+    
     const total = match.scores.reduce((sum, s) => sum + Number(s.score ?? 0), 0);
-    return Number.isFinite(total) && total > 0 ? total : null;
-  } catch {
+    console.log(`[FETCH_FINAL_TOTAL] ✅ Total score calculated: ${total}`);
+    
+    // Accept 0 as valid (scoreless draws in soccer), just check it's a finite number
+    return Number.isFinite(total) && total >= 0 ? total : null;
+  } catch (error) {
+    console.error(`[FETCH_FINAL_TOTAL] ❌ Error:`, error);
     return null;
   }
 }
