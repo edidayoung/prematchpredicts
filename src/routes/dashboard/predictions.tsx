@@ -271,41 +271,63 @@ function PredictionsPage() {
             </p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {history.map((pick) => (
-              <button
-                key={pick.id}
-                onClick={() => setSelectedPick(pick)}
-                className="flex w-full flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card px-5 py-4 text-left transition-colors hover:bg-secondary/40 hover:border-[#10B981]/50 cursor-pointer"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-foreground">
-                    {pick.away_team} at {pick.home_team}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {pick.pick_date} · {pick.selection} {Number(pick.line)} @ {Number(pick.odds).toFixed(2)} ·{" "}
-                    {pick.confidence}% confidence
-                    {pick.final_total != null && ` · final total ${Number(pick.final_total)}`}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  {pick.profit != null && (
-                    <span
-                      className={`font-mono text-sm font-semibold ${
-                        Number(pick.profit) > 0
-                          ? "text-success"
-                          : Number(pick.profit) < 0
-                            ? "text-destructive"
-                            : "text-muted-foreground"
-                      }`}
-                    >
-                      {Number(pick.profit) > 0 ? '+' : ''}₦{Number(pick.profit).toFixed(2)}
-                    </span>
-                  )}
-                  <StatusTag status={pick.status} />
-                </div>
-              </button>
-            ))}
+          <div className="max-h-[600px] overflow-y-auto pr-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {history.map((pick) => {
+                const profit = pick.profit != null ? Number(pick.profit) : null;
+                
+                return (
+                  <button
+                    key={pick.id}
+                    onClick={() => setSelectedPick(pick)}
+                    className="group rounded-xl border border-border bg-card p-4 text-left transition-all hover:border-[#10B981]/50 hover:shadow-md cursor-pointer"
+                  >
+                    {/* Status Badge */}
+                    <div className="mb-3">
+                      <StatusTag status={pick.status} />
+                    </div>
+
+                    {/* Teams */}
+                    <h3 className="font-semibold text-foreground text-sm line-clamp-2 group-hover:text-[#10B981] transition-colors">
+                      {pick.away_team} <span className="text-muted-foreground">@</span> {pick.home_team}
+                    </h3>
+
+                    {/* Date */}
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      {new Date(pick.pick_date).toLocaleDateString(undefined, { 
+                        month: 'short', 
+                        day: 'numeric'
+                      })}
+                    </p>
+
+                    {/* Selection & Odds */}
+                    <div className="mt-3 flex items-center justify-between text-xs">
+                      <span className="font-mono font-semibold text-foreground">
+                        {pick.selection} {Number(pick.line)}
+                      </span>
+                      <span className="font-mono font-semibold text-success">
+                        {Number(pick.odds).toFixed(2)}
+                      </span>
+                    </div>
+
+                    {/* Profit */}
+                    {profit !== null && (
+                      <div className="mt-3 pt-3 border-t border-border">
+                        <p className={`font-mono text-sm font-bold text-center ${
+                          profit > 0 
+                            ? "text-success" 
+                            : profit < 0 
+                              ? "text-destructive" 
+                              : "text-muted-foreground"
+                        }`}>
+                          {profit > 0 ? '+' : ''}₦{profit.toFixed(2)}
+                        </p>
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
       </section>

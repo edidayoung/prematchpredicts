@@ -83,7 +83,7 @@ function DashboardLayout() {
         <div className="flex h-full flex-col">
           {/* Header with close button on mobile */}
           <div className="flex h-20 items-center justify-between border-b border-border px-6">
-            <img src="/Logo.png" alt="PrematchPredicts" className="h-10 w-auto" />
+            <img src="/Logo.png" alt="PrematchPredicts" className="h-10 w-auto drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
             {isMobile && (
               <button
                 onClick={() => setSidebarOpen(false)}
@@ -173,7 +173,7 @@ function DashboardLayout() {
           >
             <Menu className="h-5 w-5" />
           </button>
-          <img src="/Logo.png" alt="PrematchPredicts" className="h-6 w-auto" />
+          <img src="/Logo.png" alt="PrematchPredicts" className="h-6 w-auto drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
         </div>
 
         {/* Page content */}

@@ -77,69 +77,11 @@ function buildStats(picks: Pick[]): BoardData["stats"] {
 
 export const getBoard = createServerFn({ method: "GET" }).handler(async (): Promise<BoardData> => {
   const oddsApiKey = process.env["ODDS_API_KEY"];
-  const ballApiKey = process.env["BALLDONTLIE_API_KEY"];
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { findCandidates, fetchFinalTotal } = await import("./odds.server");
-  const { enhanceWithPrediction } = await import("./prediction-engine.server");
+  const { findCandidates } = await import("./odds.server");
 
   let message: string | null = null;
   const day = todayIso();
-
-  // 1. Settle anything that has finished since the last visit.
-  console.log("========== SETTLEMENT CHECK ==========");
-  console.log(`Current time: ${new Date().toISOString()}`);
-  console.log(`Checking for games that started before: ${new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()}`);
-  
-  if (oddsApiKey) {
-    const { data: pending } = await supabaseAdmin
-      .from("daily_picks")
-      .select("*")
-      .eq("status", "pending")
-      .lt("commence_time", new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString());
-
-    console.log(`Found ${pending?.length ?? 0} pending games to check`);
-    
-    if (pending && pending.length > 0) {
-      for (const row of pending) {
-        console.log(`\n--- Checking game: ${row.away_team} @ ${row.home_team} ---`);
-        console.log(`Game ID: ${row.id}`);
-        console.log(`Event ID: ${row.event_id}`);
-        console.log(`Sport: ${row.sport_key}`);
-        console.log(`Commenced: ${row.commence_time}`);
-        console.log(`Selection: ${row.selection} ${row.line}`);
-        
-        const total = await fetchFinalTotal(oddsApiKey, row.sport_key, row.event_id);
-        console.log(`Final total from API: ${total}`);
-        
-        if (total == null) {
-          console.log(`❌ No final score available yet - skipping`);
-          continue;
-        }
-        
-        const line = Number(row.line);
-        const status =
-          total === line ? "push" : (total > line) === (row.selection === "Over") ? "won" : "lost";
-        const profit =
-          status === "push" ? 0 : status === "won" ? Number(row.stake) * (Number(row.odds) - 1) : -Number(row.stake);
-        
-        console.log(`✅ SETTLING: Total=${total}, Line=${line}, Status=${status.toUpperCase()}, Profit=₦${profit}`);
-        
-        await supabaseAdmin
-          .from("daily_picks")
-          .update({ status, final_total: total, profit, settled_at: new Date().toISOString() })
-          .eq("id", row.id);
-        
-        console.log(`✅ Database updated successfully`);
-      }
-    } else {
-      console.log("ℹ️ No pending games found that meet the criteria");
-    }
-  } else {
-    console.log("⚠️ No Odds API key - settlement skipped");
-  }
-  console.log("======================================\n");
-
-  // 2. Make sure today has a pick.
   const { data: existingToday } = await supabaseAdmin
     .from("daily_picks")
     .select("*")
@@ -155,66 +97,8 @@ export const getBoard = createServerFn({ method: "GET" }).handler(async (): Prom
         if (candidates.length === 0) {
           message = "No game anywhere today has an over/under price in range. Check back closer to kick-off.";
         } else {
-          // Enhance candidates with statistical predictions for NBA games
-          const enhancedCandidates = await Promise.all(
-            candidates.map(async (candidate) => {
-              // Only enhance NBA games if we have the BallDontLie API key
-              if (candidate.sportKey === "basketball_nba" && ballApiKey) {
-                try {
-                  console.log(`[PREDICTION] Attempting to enhance NBA game: ${candidate.awayTeam} @ ${candidate.homeTeam}`);
-                  
-                  // Try to find team stats
-                  const { data: teams } = await supabaseAdmin
-                    .from("nba_teams")
-                    .select("team_id, team_name, full_name")
-                    .or(`full_name.ilike.%${candidate.homeTeam}%,team_name.ilike.%${candidate.homeTeam}%`)
-                    .limit(1)
-                    .maybeSingle();
-
-                  const { data: awayTeams } = await supabaseAdmin
-                    .from("nba_teams")
-                    .select("team_id, team_name, full_name")
-                    .or(`full_name.ilike.%${candidate.awayTeam}%,team_name.ilike.%${candidate.awayTeam}%`)
-                    .limit(1)
-                    .maybeSingle();
-
-                  if (teams && awayTeams) {
-                    console.log(`[PREDICTION] Found teams: ${teams.full_name} vs ${awayTeams.full_name}`);
-                    
-                    const { data: homeStats } = await supabaseAdmin
-                      .from("team_stats")
-                      .select("*")
-                      .eq("team_id", teams.team_id)
-                      .maybeSingle();
-
-                    const { data: awayStats } = await supabaseAdmin
-                      .from("team_stats")
-                      .select("*")
-                      .eq("team_id", awayTeams.team_id)
-                      .maybeSingle();
-
-                    if (homeStats && awayStats) {
-                      console.log(`[PREDICTION] ✅ Using real stats! Home: ${homeStats.points_per_game} PPG, Away: ${awayStats.points_per_game} PPG`);
-                      const enhanced = enhanceWithPrediction(candidate, homeStats, awayStats);
-                      console.log(`[PREDICTION] Enhanced confidence: ${candidate.confidence}% → ${enhanced.confidence}%`);
-                      return enhanced;
-                    } else {
-                      console.log(`[PREDICTION] ⚠️ Teams found but stats missing. Run /admin sync.`);
-                    }
-                  } else {
-                    console.log(`[PREDICTION] ⚠️ NBA teams not in database. Run /admin sync first.`);
-                  }
-                } catch (error) {
-                  console.error("[PREDICTION] Error enhancing candidate with stats:", error);
-                }
-              }
-              return candidate;
-            })
-          );
-
-          // Sort by confidence (now enhanced with statistical model)
-          enhancedCandidates.sort((a, b) => b.confidence - a.confidence);
-          const best = enhancedCandidates[0]!;
+          candidates.sort((a, b) => b.confidence - a.confidence);
+          const best = candidates[0]!;
 
           await supabaseAdmin.from("daily_picks").insert({
             pick_date: day,
@@ -257,3 +141,50 @@ export const getBoard = createServerFn({ method: "GET" }).handler(async (): Prom
     message,
   };
 });
+
+// Manual settlement function for admin
+export const settlePick = createServerFn({ method: "POST" })
+  .validator((data: { pickId: string; status: string; finalTotal: number }) => data)
+  .handler(async ({ data }) => {
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    
+    // Get the pick
+    const { data: pick, error: fetchError } = await supabaseAdmin
+      .from("daily_picks")
+      .select("*")
+      .eq("id", data.pickId)
+      .single();
+
+    if (fetchError || !pick) {
+      throw new Error("Pick not found");
+    }
+
+    // Calculate profit
+    let profit = 0;
+    if (data.status === "won") {
+      profit = Number(pick.stake) * (Number(pick.odds) - 1);
+    } else if (data.status === "lost") {
+      profit = -Number(pick.stake);
+    } else if (data.status === "push" || data.status === "void") {
+      profit = 0;
+    }
+
+    // Update the pick
+    const { error: updateError } = await supabaseAdmin
+      .from("daily_picks")
+      .update({
+        status: data.status,
+        final_total: data.finalTotal,
+        profit,
+        settled_at: new Date().toISOString(),
+      })
+      .eq("id", data.pickId);
+
+    if (updateError) {
+      throw new Error("Failed to update pick");
+    }
+
+    return { success: true, profit };
+  });
+
+

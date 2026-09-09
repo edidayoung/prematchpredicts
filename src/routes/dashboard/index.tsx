@@ -2,20 +2,123 @@ import { createFileRoute } from "@tanstack/react-router";
 import { getBoard, type Pick } from "@/lib/picks.functions";
 import { TrendingUp, TrendingDown, Target, Wallet, Award, Activity } from "lucide-react";
 import { useAutoRefresh } from "@/hooks/use-auto-refresh";
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export const Route = createFileRoute("/dashboard/")({
   loader: () => getBoard(),
   component: OverviewPage,
 });
 
+function PickDetailModal({ pick, open, onClose }: { pick: Pick; open: boolean; onClose: () => void }) {
+  const profit = pick.profit != null ? Number(pick.profit) : null;
+  const finalTotal = pick.final_total != null ? Number(pick.final_total) : null;
+  
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-2xl">
+            {pick.away_team} <span className="text-muted-foreground">at</span> {pick.home_team}
+          </DialogTitle>
+        </DialogHeader>
+        
+        <div className="space-y-6">
+          {/* Status and Date */}
+          <div className="flex flex-wrap items-center gap-3">
+            <span className={`rounded-full px-4 py-1.5 text-sm font-bold border ${
+              pick.status === "won" ? "bg-success/15 text-success border-success/30" :
+              pick.status === "lost" ? "bg-destructive/15 text-destructive border-destructive/30" :
+              pick.status === "push" ? "bg-muted text-muted-foreground border-border" :
+              "bg-[#10B981]/15 text-[#10B981] border-[#10B981]/30"
+            }`}>
+              {pick.status.toUpperCase()}
+            </span>
+            <span className="text-xs uppercase tracking-wider text-muted-foreground">
+              {pick.sport_title}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              {new Date(pick.commence_time).toLocaleString(undefined, {
+                weekday: "short",
+                month: "short",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </div>
+
+          {/* Selection Details */}
+          <div className="grid gap-4 sm:grid-cols-3">
+            <div className="rounded-xl border border-border bg-secondary/40 p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Selection</p>
+              <p className="mt-1 font-mono text-xl font-bold text-foreground">
+                {pick.selection} {Number(pick.line)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-border bg-secondary/40 p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Odds</p>
+              <p className="mt-1 font-mono text-xl font-bold text-success">{Number(pick.odds).toFixed(2)}</p>
+            </div>
+            <div className="rounded-xl border border-border bg-secondary/40 p-4">
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Stake</p>
+              <p className="mt-1 font-mono text-xl font-bold text-foreground">₦{Number(pick.stake).toFixed(2)}</p>
+            </div>
+          </div>
+
+          {/* Final Score & Result */}
+          {pick.status !== "pending" && finalTotal !== null && (
+            <div className="rounded-xl border border-border bg-secondary/20 p-4">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Final Total</p>
+                  <p className="mt-1 font-mono text-2xl font-bold text-foreground">{finalTotal}</p>
+                </div>
+                <div>
+                  <p className="text-xs uppercase tracking-wider text-muted-foreground">Profit/Loss</p>
+                  <p className={`mt-1 font-mono text-2xl font-bold ${
+                    profit && profit > 0 ? "text-success" : profit && profit < 0 ? "text-destructive" : "text-muted-foreground"
+                  }`}>
+                    {profit !== null ? `${profit > 0 ? '+' : ''}₦${profit.toFixed(2)}` : '₦0.00'}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Analysis */}
+          <div className="rounded-xl border border-border bg-secondary/20 p-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Analysis</p>
+            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+              {pick.reasoning}
+            </p>
+          </div>
+
+          {/* Bookmaker */}
+          <div className="rounded-xl border border-border bg-secondary/20 p-4">
+            <p className="text-xs uppercase tracking-wider text-muted-foreground">Bookmaker</p>
+            <p className="mt-1 text-lg font-semibold text-foreground">{pick.bookmaker}</p>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function OverviewPage() {
   const { stats, today, history } = Route.useLoaderData();
+  const [selectedPick, setSelectedPick] = useState<Pick | null>(null);
   
   // Auto-refresh every 5 minutes (no API calls, just database refresh)
   const lastRefresh = useAutoRefresh(5);
 
-  // Get recent results (last 5)
-  const recentResults = history.slice(0, 5).filter(p => p.status !== "pending");
+  // Get recent results (last 3)
+  const recentResults = history.slice(0, 3).filter(p => p.status !== "pending");
 
   // Calculate streak info
   const streakText = stats.streak > 0 
@@ -194,15 +297,16 @@ function OverviewPage() {
         ) : (
           <div className="space-y-3">
             {recentResults.map((pick: Pick) => (
-              <div
+              <button
                 key={pick.id}
-                className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-3 transition-colors hover:bg-secondary/40 sm:flex-row sm:items-center sm:justify-between sm:p-4"
+                onClick={() => setSelectedPick(pick)}
+                className="flex w-full flex-col gap-3 rounded-2xl border border-border bg-card p-3 transition-all hover:bg-secondary/40 hover:border-[#10B981]/50 hover:shadow-md sm:flex-row sm:items-center sm:justify-between sm:p-4"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="truncate font-semibold text-foreground text-sm sm:text-base">
+                  <p className="truncate font-semibold text-foreground text-sm sm:text-base text-left">
                     {pick.away_team} @ {pick.home_team}
                   </p>
-                  <p className="mt-1 text-xs sm:text-sm text-muted-foreground truncate">
+                  <p className="mt-1 text-xs sm:text-sm text-muted-foreground truncate text-left">
                     {pick.selection} {Number(pick.line)} @ {Number(pick.odds).toFixed(2)} · {pick.pick_date}
                   </p>
                 </div>
@@ -232,11 +336,20 @@ function OverviewPage() {
                     {pick.status.toUpperCase()}
                   </span>
                 </div>
-              </div>
+              </button>
             ))}
           </div>
         )}
       </div>
+
+      {/* Pick Detail Modal */}
+      {selectedPick && (
+        <PickDetailModal 
+          pick={selectedPick} 
+          open={!!selectedPick} 
+          onClose={() => setSelectedPick(null)} 
+        />
+      )}
 
       {/* Keep going message */}
       {stats.streak > 0 && (
