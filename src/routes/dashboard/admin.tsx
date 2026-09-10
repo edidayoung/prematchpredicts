@@ -81,19 +81,17 @@ function AdminPage() {
     setMessage(null);
 
     try {
+      // Call settlePick with the data directly
       const result = await settlePick({
-        data: {
-          pickId: selectedPick.id,
-          status: settlementStatus,
-          finalTotal: Number(finalTotal),
-        }
+        pickId: selectedPick.id,
+        status: settlementStatus,
+        finalTotal: Number(finalTotal),
       });
 
-      if (result.success) {
-        setMessage(`Pick settled as ${settlementStatus.toUpperCase()}! Profit: ₦${result.profit.toFixed(2)}`);
-        setTimeout(() => window.location.reload(), 1500);
-      }
+      setMessage(`Pick settled as ${settlementStatus.toUpperCase()}! Profit: ₦${result.profit.toFixed(2)}`);
+      setTimeout(() => window.location.reload(), 1500);
     } catch (err: any) {
+      console.error("Settlement error:", err);
       setError(err.message || "Settlement failed");
     } finally {
       setSettling(false);

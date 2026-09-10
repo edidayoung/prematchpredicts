@@ -165,16 +165,14 @@ export const getBoard = createServerFn({ method: "GET" }).handler(async (): Prom
 });
 
 // Manual settlement function for admin
-export const settlePick = createServerFn({ method: "POST" })
-  .validator((data: { pickId: string; status: string; finalTotal: number }) => data)
-  .handler(async ({ data }) => {
+export const settlePick = createServerFn({ method: "POST" }).handler(async (input: { pickId: string; status: string; finalTotal: number }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
     // Get the pick
     const { data: pick, error: fetchError } = await supabaseAdmin
       .from("daily_picks")
       .select("*")
-      .eq("id", data.pickId)
+      .eq("id", input.pickId)
       .single();
 
     if (fetchError || !pick) {
@@ -183,11 +181,11 @@ export const settlePick = createServerFn({ method: "POST" })
 
     // Calculate profit
     let profit = 0;
-    if (data.status === "won") {
+    if (input.status === "won") {
       profit = Number(pick.stake) * (Number(pick.odds) - 1);
-    } else if (data.status === "lost") {
+    } else if (input.status === "lost") {
       profit = -Number(pick.stake);
-    } else if (data.status === "push" || data.status === "void") {
+    } else if (input.status === "push" || input.status === "void") {
       profit = 0;
     }
 
@@ -195,12 +193,12 @@ export const settlePick = createServerFn({ method: "POST" })
     const { error: updateError } = await supabaseAdmin
       .from("daily_picks")
       .update({
-        status: data.status,
-        final_total: data.finalTotal,
+        status: input.status,
+        final_total: input.finalTotal,
         profit,
         settled_at: new Date().toISOString(),
       })
-      .eq("id", data.pickId);
+      .eq("id", input.pickId);
 
     if (updateError) {
       throw new Error("Failed to update pick");
