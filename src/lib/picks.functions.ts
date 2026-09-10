@@ -131,6 +131,8 @@ export const getBoard = createServerFn({ method: "GET" }).handler(async (): Prom
     .order("pick_date", { ascending: false })
     .limit(120);
 
+  console.log("[GET_BOARD] Sample pick from database:", rows?.[0]);
+  
   const picks = (rows ?? []) as unknown as Pick[];
   
   // Separate today's pick from history based on 4-hour rule

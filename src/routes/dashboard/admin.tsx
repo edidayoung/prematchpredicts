@@ -22,6 +22,12 @@ function AdminPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   
+  // Debug: Log the board data on mount
+  useEffect(() => {
+    console.log("[ADMIN] Board loaded:", board);
+    console.log("[ADMIN] Pending picks:", board.history.filter((p: Pick) => p.status === "pending"));
+  }, []);
+  
   // Admin PIN protection
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [pin, setPin] = useState("");
@@ -73,6 +79,12 @@ function AdminPage() {
   const handleSettlement = async () => {
     if (!selectedPick || !settlementStatus || finalTotal === "") {
       setError("Please fill all fields");
+      return;
+    }
+
+    if (!selectedPick.id) {
+      setError("Invalid pick selected - missing ID");
+      console.error("[CLIENT] Selected pick has no ID:", selectedPick);
       return;
     }
 
@@ -218,6 +230,8 @@ function AdminPage() {
                   <button
                     key={pick.id}
                     onClick={() => {
+                      console.log("[CLIENT] Selected pick:", pick);
+                      console.log("[CLIENT] Pick ID:", pick.id);
                       setSelectedPick(pick);
                       setSettlementStatus("");
                       setFinalTotal("");
