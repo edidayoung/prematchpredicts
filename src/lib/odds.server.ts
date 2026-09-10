@@ -308,13 +308,11 @@ export async function findCandidates(apiKey: string, dayIso: string): Promise<Ca
   const tiers: { keys: string[]; band: { min: number; max: number } }[] = [];
   const basketball = active.filter((s) => s.group === "Basketball").map((s) => s.key);
   tiers.push({ keys: basketball, band: { min: MIN_ODDS, max: MAX_ODDS } });
-  tiers.push({ keys: basketball, band: { min: 1.7, max: 2.6 } });
 
   const others = FALLBACK_GROUPS.flatMap((g) =>
     active.filter((s) => s.group === g).map((s) => s.key),
   ).slice(0, 18);
   tiers.push({ keys: others, band: { min: MIN_ODDS, max: MAX_ODDS } });
-  tiers.push({ keys: others, band: { min: 1.7, max: 2.6 } });
 
   for (const tier of tiers) {
     if (tier.keys.length === 0) continue;

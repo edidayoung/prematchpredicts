@@ -132,11 +132,33 @@ export const getBoard = createServerFn({ method: "GET" }).handler(async (): Prom
     .limit(120);
 
   const picks = (rows ?? []) as unknown as Pick[];
-  const today = picks.find((p) => p.pick_date === day) ?? null;
+  
+  // Separate today's pick from history based on 4-hour rule
+  const now = Date.now();
+  let today: Pick | null = null;
+  const history: Pick[] = [];
+  
+  for (const pick of picks) {
+    if (pick.pick_date === day) {
+      // Check if game started more than 4 hours ago
+      const gameStartTime = new Date(pick.commence_time).getTime();
+      const fourHoursAfterStart = gameStartTime + (4 * 60 * 60 * 1000); // 4 hours in milliseconds
+      
+      if (now < fourHoursAfterStart) {
+        // Game started less than 4 hours ago - still "today's pick"
+        today = pick;
+      } else {
+        // Game started more than 4 hours ago - move to history for settlement
+        history.push(pick);
+      }
+    } else {
+      history.push(pick);
+    }
+  }
 
   return {
     today,
-    history: picks.filter((p) => p.pick_date !== day),
+    history,
     stats: buildStats(picks),
     message,
   };

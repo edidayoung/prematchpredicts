@@ -1,13 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getBoard, type Pick } from "@/lib/picks.functions";
 import { useAutoRefresh } from "@/hooks/use-auto-refresh";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Clock } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard/predictions")({
   loader: () => getBoard(),
@@ -228,6 +229,56 @@ function TodayCard({ pick }: { pick: Pick }) {
   );
 }
 
+function CountdownToMidnight() {
+  const [timeLeft, setTimeLeft] = useState("");
+
+  useEffect(() => {
+    const updateCountdown = () => {
+      const now = new Date();
+      const midnight = new Date();
+      midnight.setHours(24, 0, 0, 0); // Next midnight
+      
+      const diff = midnight.getTime() - now.getTime();
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      setTimeLeft(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`);
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="rounded-2xl border border-border bg-gradient-to-br from-secondary/40 to-secondary/20 p-10 text-center">
+      <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#10B981]/10">
+        <Clock className="h-10 w-10 text-[#10B981]" />
+      </div>
+      
+      <p className="text-xl font-bold text-foreground">Next Pick Generating In</p>
+      
+      <div className="mt-6 font-mono text-5xl font-bold text-[#10B981]">
+        {timeLeft}
+      </div>
+      
+      <div className="mt-2 flex justify-center gap-6 text-xs uppercase tracking-wider text-muted-foreground">
+        <span>Hours</span>
+        <span>Minutes</span>
+        <span>Seconds</span>
+      </div>
+      
+      <p className="mt-6 text-sm text-muted-foreground">
+        Our AI model will analyze all available games at midnight<br />
+        and select the best value pick for tomorrow
+      </p>
+    </div>
+  );
+}
+
 function PredictionsPage() {
   const { today, history, message } = Route.useLoaderData();
   const [selectedPick, setSelectedPick] = useState<Pick | null>(null);
@@ -255,10 +306,7 @@ function PredictionsPage() {
       {today ? (
         <TodayCard pick={today} />
       ) : (
-        <div className="rounded-2xl border border-dashed border-border p-10 text-center text-muted-foreground">
-          <p className="text-lg font-semibold">No qualifying game yet today</p>
-          <p className="mt-2 text-sm">Check back closer to tip-off time</p>
-        </div>
+        <CountdownToMidnight />
       )}
 
       {/* Past Picks */}

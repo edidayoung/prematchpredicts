@@ -1,10 +1,11 @@
 import { createFileRoute, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { isAuthenticated, logout } from "@/lib/auth";
-import { LayoutDashboard, TrendingUp, LogOut, Menu, X, Target, Flame } from "lucide-react";
+import { LayoutDashboard, TrendingUp, LogOut, Menu, X, Target, Flame, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getBoard } from "@/lib/picks.functions";
+import { updateHeartbeat, cleanupSession } from "@/lib/session-tracker";
 
 export const Route = createFileRoute("/dashboard")({
   component: DashboardLayout,
@@ -29,6 +30,23 @@ function DashboardLayout() {
     });
   }, [location.pathname]); // Refresh on route change
 
+  // Heartbeat: Update session every 30 seconds
+  useEffect(() => {
+    // Initial heartbeat
+    updateHeartbeat();
+    
+    // Set interval for heartbeat
+    const interval = setInterval(() => {
+      updateHeartbeat();
+    }, 30000); // 30 seconds
+    
+    // Cleanup on unmount
+    return () => {
+      clearInterval(interval);
+      cleanupSession(); // Remove session when user closes/leaves
+    };
+  }, []);
+
   useEffect(() => {
     if (!isAuthenticated()) {
       navigate({ to: "/login" });
@@ -51,6 +69,7 @@ function DashboardLayout() {
     { name: "Overview", path: "/dashboard", icon: LayoutDashboard },
     { name: "Predictions", path: "/dashboard/predictions", icon: TrendingUp },
     { name: "Hits", path: "/dashboard/hits", icon: Target },
+    { name: "Admin", path: "/dashboard/admin", icon: Settings },
   ];
 
   const isActive = (path: string) => {

@@ -94,7 +94,7 @@ function LoginPage() {
 
         {/* Footer */}
         <p className="mt-6 text-center text-xs text-muted-foreground">
-          PrematchPredicts © 2025 · Daily Sports Predictions
+          PrematchPredicts © 2026 · Daily Sports Predictions
         </p>
       </div>
     </div>
