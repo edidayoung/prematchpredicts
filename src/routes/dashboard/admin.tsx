@@ -80,6 +80,13 @@ function AdminPage() {
     setError(null);
     setMessage(null);
 
+    console.log("[CLIENT] Settling pick:", {
+      pickId: selectedPick.id,
+      status: settlementStatus,
+      finalTotal: Number(finalTotal),
+      selectedPick: selectedPick
+    });
+
     try {
       // Call settlePick with the data directly
       const result = await settlePick({
@@ -88,10 +95,11 @@ function AdminPage() {
         finalTotal: Number(finalTotal),
       });
 
+      console.log("[CLIENT] Settlement result:", result);
       setMessage(`Pick settled as ${settlementStatus.toUpperCase()}! Profit: ₦${result.profit.toFixed(2)}`);
       setTimeout(() => window.location.reload(), 1500);
     } catch (err: any) {
-      console.error("Settlement error:", err);
+      console.error("[CLIENT] Settlement error:", err);
       setError(err.message || "Settlement failed");
     } finally {
       setSettling(false);

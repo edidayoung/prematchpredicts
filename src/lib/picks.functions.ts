@@ -166,17 +166,22 @@ export const getBoard = createServerFn({ method: "GET" }).handler(async (): Prom
 
 // Manual settlement function for admin
 export const settlePick = createServerFn({ method: "POST" }).handler(async (input: { pickId: string; status: string; finalTotal: number }) => {
+    console.log("[SETTLE_PICK] Received input:", JSON.stringify(input));
+    
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
     // Get the pick
+    console.log("[SETTLE_PICK] Querying for pick with ID:", input.pickId);
     const { data: pick, error: fetchError } = await supabaseAdmin
       .from("daily_picks")
       .select("*")
       .eq("id", input.pickId)
       .single();
 
+    console.log("[SETTLE_PICK] Query result - pick:", pick, "error:", fetchError);
+
     if (fetchError || !pick) {
-      throw new Error("Pick not found");
+      throw new Error(`Pick not found: ${fetchError?.message || "No data returned"}`);
     }
 
     // Calculate profit
@@ -188,6 +193,8 @@ export const settlePick = createServerFn({ method: "POST" }).handler(async (inpu
     } else if (input.status === "push" || input.status === "void") {
       profit = 0;
     }
+
+    console.log("[SETTLE_PICK] Calculated profit:", profit);
 
     // Update the pick
     const { error: updateError } = await supabaseAdmin
@@ -201,9 +208,11 @@ export const settlePick = createServerFn({ method: "POST" }).handler(async (inpu
       .eq("id", input.pickId);
 
     if (updateError) {
+      console.error("[SETTLE_PICK] Update error:", updateError);
       throw new Error("Failed to update pick");
     }
 
+    console.log("[SETTLE_PICK] Success! Profit:", profit);
     return { success: true, profit };
   });
 
