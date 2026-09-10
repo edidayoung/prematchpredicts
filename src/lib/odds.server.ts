@@ -65,7 +65,7 @@ const SWEET_MIN = 2.0;
 const SWEET_MAX = 2.15;
 
 // Minimum confidence threshold - reject picks below this level
-export const MIN_CONFIDENCE = 80;
+export const MIN_CONFIDENCE = 85;
 
 
 async function getJson<T>(url: string): Promise<T> {
@@ -287,18 +287,19 @@ async function fetchScored(
   return scored;
 }
 
-// When basketball is out of season we still owe a pick, so these are searched next.
+// Sports checked for picks (all checked together, no priority - highest confidence wins)
 const FALLBACK_GROUPS = [
-  "Baseball",
+  "Soccer",
+  "Basketball",
   "American Football",
   "Ice Hockey",
-  "Soccer",
+  "Baseball",
   "Rugby League",
   "Aussie Rules",
   "Cricket",
 ];
 
-/** Rank today's candidates. Basketball first, then any other sport, so no day is ever skipped. */
+/** Rank today's candidates across ALL sports, picking the absolute best regardless of sport. */
 export async function findCandidates(apiKey: string, dayIso: string): Promise<Candidate[]> {
   const all = await getJson<SportEntry[]>(`${BASE}/sports/?apiKey=${apiKey}`);
   const active = all.filter((s) => s.active && !s.has_outrights);
@@ -308,35 +309,47 @@ export async function findCandidates(apiKey: string, dayIso: string): Promise<Ca
 
   const inDay = (s: { start: number }) => s.start >= Math.max(dayStart, now) && s.start <= dayEnd;
 
-  const tiers: { keys: string[]; band: { min: number; max: number } }[] = [];
-  const basketball = active.filter((s) => s.group === "Basketball").map((s) => s.key);
-  tiers.push({ keys: basketball, band: { min: MIN_ODDS, max: MAX_ODDS } });
+  // Collect ALL sport keys - Soccer prioritized, but ALL checked together
+  const soccer = active.filter((s) => s.group === "Soccer").map((s) => s.key);
+  const otherSports = FALLBACK_GROUPS.filter(g => g !== "Soccer")
+    .flatMap((g) => active.filter((s) => s.group === g).map((s) => s.key))
+    .slice(0, 20);
+  
+  // Combine all sports - they'll ALL be compared by confidence
+  const allSportKeys = [...soccer, ...otherSports];
+  
+  console.log(`[FIND_CANDIDATES] Checking ${allSportKeys.length} sports for ${dayIso}`);
+  
+  if (allSportKeys.length === 0) return [];
 
-  const others = FALLBACK_GROUPS.flatMap((g) =>
-    active.filter((s) => s.group === g).map((s) => s.key),
-  ).slice(0, 18);
-  tiers.push({ keys: others, band: { min: MIN_ODDS, max: MAX_ODDS } });
-
-  for (const tier of tiers) {
-    if (tier.keys.length === 0) continue;
-    const scored = await fetchScored(apiKey, tier.keys, tier.band);
-    const todays = scored.filter(inDay);
-    if (todays.length > 0) {
-      // Filter candidates by minimum confidence threshold
-      const qualified = todays
-        .map((s) => s.candidate)
-        .filter((c) => c.confidence >= MIN_CONFIDENCE)
-        .sort((a, b) => b.confidence - a.confidence);
-      
-      // If we have at least one pick that meets the confidence threshold, return it
-      if (qualified.length > 0) {
-        return qualified;
-      }
-      // Otherwise continue to next tier (or return empty if no tiers left)
-    }
+  // Fetch and score ALL sports at once (no tiers - pure confidence comparison)
+  const scored = await fetchScored(apiKey, allSportKeys, { min: MIN_ODDS, max: MAX_ODDS });
+  const todays = scored.filter(inDay);
+  
+  console.log(`[FIND_CANDIDATES] Found ${todays.length} games today across all sports`);
+  
+  if (todays.length === 0) return [];
+  
+  // Log all candidates before filtering
+  todays.forEach(s => {
+    console.log(`[CANDIDATE] ${s.candidate.sportTitle}: ${s.candidate.awayTeam} @ ${s.candidate.homeTeam} - ${s.candidate.confidence}% confidence`);
+  });
+  
+  // Filter by confidence threshold and sort (best first)
+  const qualified = todays
+    .map((s) => s.candidate)
+    .filter((c) => c.confidence >= MIN_CONFIDENCE)
+    .sort((a, b) => b.confidence - a.confidence);
+  
+  console.log(`[FIND_CANDIDATES] ${qualified.length} picks qualify (>= ${MIN_CONFIDENCE}% confidence)`);
+  
+  if (qualified.length > 0) {
+    console.log(`[SELECTED] ${qualified[0].sportTitle}: ${qualified[0].awayTeam} @ ${qualified[0].homeTeam} - ${qualified[0].confidence}% confidence`);
+  } else {
+    console.log(`[SELECTED] No picks meet the ${MIN_CONFIDENCE}% confidence threshold today`);
   }
-
-  return [];
+  
+  return qualified;
 }
 
 
