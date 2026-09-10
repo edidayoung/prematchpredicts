@@ -64,6 +64,9 @@ export const MAX_ODDS = 2.3;
 const SWEET_MIN = 2.0;
 const SWEET_MAX = 2.15;
 
+// Minimum confidence threshold - reject picks below this level
+export const MIN_CONFIDENCE = 80;
+
 
 async function getJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
@@ -319,7 +322,17 @@ export async function findCandidates(apiKey: string, dayIso: string): Promise<Ca
     const scored = await fetchScored(apiKey, tier.keys, tier.band);
     const todays = scored.filter(inDay);
     if (todays.length > 0) {
-      return todays.map((s) => s.candidate).sort((a, b) => b.confidence - a.confidence);
+      // Filter candidates by minimum confidence threshold
+      const qualified = todays
+        .map((s) => s.candidate)
+        .filter((c) => c.confidence >= MIN_CONFIDENCE)
+        .sort((a, b) => b.confidence - a.confidence);
+      
+      // If we have at least one pick that meets the confidence threshold, return it
+      if (qualified.length > 0) {
+        return qualified;
+      }
+      // Otherwise continue to next tier (or return empty if no tiers left)
     }
   }
 

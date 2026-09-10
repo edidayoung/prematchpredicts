@@ -95,7 +95,7 @@ export const getBoard = createServerFn({ method: "GET" }).handler(async (): Prom
       try {
         const candidates = await findCandidates(oddsApiKey, day);
         if (candidates.length === 0) {
-          message = "No game anywhere today has an over/under price in range. Check back closer to kick-off.";
+          message = "No high-confidence pick available today. Our AI model only selects games with 80%+ confidence to protect your bankroll. Check back tomorrow!";
         } else {
           candidates.sort((a, b) => b.confidence - a.confidence);
           const best = candidates[0]!;
@@ -131,8 +131,6 @@ export const getBoard = createServerFn({ method: "GET" }).handler(async (): Prom
     .order("pick_date", { ascending: false })
     .limit(120);
 
-  console.log("[GET_BOARD] Sample pick from database:", rows?.[0]);
-  
   const picks = (rows ?? []) as unknown as Pick[];
   
   // Separate today's pick from history based on 4-hour rule
@@ -167,54 +165,47 @@ export const getBoard = createServerFn({ method: "GET" }).handler(async (): Prom
 });
 
 // Manual settlement function for admin
-export const settlePick = createServerFn({ method: "POST" }).handler(async (input: { pickId: string; status: string; finalTotal: number }) => {
-    console.log("[SETTLE_PICK] Received input:", JSON.stringify(input));
-    
+export const settlePick = createServerFn({ method: "POST" })
+  .validator((data: { pickId: string; status: string; finalTotal: number }) => data)
+  .handler(async ({ data }) => {
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     
     // Get the pick
-    console.log("[SETTLE_PICK] Querying for pick with ID:", input.pickId);
     const { data: pick, error: fetchError } = await supabaseAdmin
       .from("daily_picks")
       .select("*")
-      .eq("id", input.pickId)
+      .eq("id", data.pickId)
       .single();
 
-    console.log("[SETTLE_PICK] Query result - pick:", pick, "error:", fetchError);
-
     if (fetchError || !pick) {
-      throw new Error(`Pick not found: ${fetchError?.message || "No data returned"}`);
+      throw new Error("Pick not found");
     }
 
     // Calculate profit
     let profit = 0;
-    if (input.status === "won") {
+    if (data.status === "won") {
       profit = Number(pick.stake) * (Number(pick.odds) - 1);
-    } else if (input.status === "lost") {
+    } else if (data.status === "lost") {
       profit = -Number(pick.stake);
-    } else if (input.status === "push" || input.status === "void") {
+    } else if (data.status === "push" || data.status === "void") {
       profit = 0;
     }
-
-    console.log("[SETTLE_PICK] Calculated profit:", profit);
 
     // Update the pick
     const { error: updateError } = await supabaseAdmin
       .from("daily_picks")
       .update({
-        status: input.status,
-        final_total: input.finalTotal,
+        status: data.status,
+        final_total: data.finalTotal,
         profit,
         settled_at: new Date().toISOString(),
       })
-      .eq("id", input.pickId);
+      .eq("id", data.pickId);
 
     if (updateError) {
-      console.error("[SETTLE_PICK] Update error:", updateError);
       throw new Error("Failed to update pick");
     }
 
-    console.log("[SETTLE_PICK] Success! Profit:", profit);
     return { success: true, profit };
   });
 

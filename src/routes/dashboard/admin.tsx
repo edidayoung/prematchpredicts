@@ -22,12 +22,6 @@ function AdminPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   
-  // Debug: Log the board data on mount
-  useEffect(() => {
-    console.log("[ADMIN] Board loaded:", board);
-    console.log("[ADMIN] Pending picks:", board.history.filter((p: Pick) => p.status === "pending"));
-  }, []);
-  
   // Admin PIN protection
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [pin, setPin] = useState("");
@@ -82,36 +76,24 @@ function AdminPage() {
       return;
     }
 
-    if (!selectedPick.id) {
-      setError("Invalid pick selected - missing ID");
-      console.error("[CLIENT] Selected pick has no ID:", selectedPick);
-      return;
-    }
-
     setSettling(true);
     setError(null);
     setMessage(null);
 
-    console.log("[CLIENT] Settling pick:", {
-      pickId: selectedPick.id,
-      status: settlementStatus,
-      finalTotal: Number(finalTotal),
-      selectedPick: selectedPick
-    });
-
     try {
-      // Call settlePick with the data directly
       const result = await settlePick({
-        pickId: selectedPick.id,
-        status: settlementStatus,
-        finalTotal: Number(finalTotal),
+        data: {
+          pickId: selectedPick.id,
+          status: settlementStatus,
+          finalTotal: Number(finalTotal),
+        }
       });
 
-      console.log("[CLIENT] Settlement result:", result);
-      setMessage(`Pick settled as ${settlementStatus.toUpperCase()}! Profit: ₦${result.profit.toFixed(2)}`);
-      setTimeout(() => window.location.reload(), 1500);
+      if (result.success) {
+        setMessage(`Pick settled as ${settlementStatus.toUpperCase()}! Profit: ₦${result.profit.toFixed(2)}`);
+        setTimeout(() => window.location.reload(), 1500);
+      }
     } catch (err: any) {
-      console.error("[CLIENT] Settlement error:", err);
       setError(err.message || "Settlement failed");
     } finally {
       setSettling(false);
@@ -230,8 +212,6 @@ function AdminPage() {
                   <button
                     key={pick.id}
                     onClick={() => {
-                      console.log("[CLIENT] Selected pick:", pick);
-                      console.log("[CLIENT] Pick ID:", pick.id);
                       setSelectedPick(pick);
                       setSettlementStatus("");
                       setFinalTotal("");
