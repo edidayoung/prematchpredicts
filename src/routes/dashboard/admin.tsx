@@ -82,10 +82,12 @@ function AdminPage() {
 
     try {
       const result = await settlePick({
-        pickId: selectedPick.id,
-        status: settlementStatus,
-        finalTotal: Number(finalTotal),
-      } as any);
+        data: {
+          pickId: selectedPick.id,
+          status: settlementStatus,
+          finalTotal: Number(finalTotal),
+        }
+      });
 
       if (result.success) {
         setMessage(`Pick settled as ${settlementStatus.toUpperCase()}! Profit: ₦${result.profit.toFixed(2)}`);
