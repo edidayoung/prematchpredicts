@@ -17,4 +17,4 @@ This system analyzes NBA games using statistical models and real team data to fi
 ✅ **Smart Value Finder** - Compares model predictions to bookmaker lines  
 ✅ **Automated Settlements** - Auto-checks results and tracks performance  
 ✅ **Performance Tracking** - Win rate, ROI, profit/loss, streaks  
-✅ **Daily Pick** - One carefully selected bet per day around 2.0 odds  
+✅ **Daily Pick** - One carefully selected bet per day around 2.0 odds  //
