@@ -13,6 +13,8 @@ export type Candidate = {
   bookmaker: string;
   confidence: number;
   reasoning: string;
+  edge: number;        // Percentage edge (e.g., 0.169 = 16.9%)
+  adjustedWinProb: number;  // Fair win probability (e.g., 0.508 = 50.8%)
 };
 
 type Outcome = { name: string; price: number; point?: number };
@@ -256,6 +258,8 @@ function scoreEvent(
           bookmaker: p.book.title,
           confidence,
           reasoning,
+          edge,                    // Store the edge value
+          adjustedWinProb: adjusted, // Store the fair win probability
         };
       }
     }
@@ -332,19 +336,50 @@ export async function findCandidates(apiKey: string, dayIso: string): Promise<Ca
   
   // Log all candidates before filtering
   todays.forEach(s => {
-    console.log(`[CANDIDATE] ${s.candidate.sportTitle}: ${s.candidate.awayTeam} @ ${s.candidate.homeTeam} - ${s.candidate.confidence}% confidence`);
+    console.log(`[CANDIDATE] ${s.candidate.sportTitle}: ${s.candidate.awayTeam} @ ${s.candidate.homeTeam} - ${s.candidate.confidence}% confidence | Edge: ${(s.candidate.edge * 100).toFixed(1)}% | Win Prob: ${(s.candidate.adjustedWinProb * 100).toFixed(1)}%`);
   });
   
-  // Filter by confidence threshold and sort (best first)
+  // Filter by confidence threshold and sort with hybrid tiebreaker
   const qualified = todays
     .map((s) => s.candidate)
     .filter((c) => c.confidence >= MIN_CONFIDENCE)
-    .sort((a, b) => b.confidence - a.confidence);
+    .sort((a, b) => {
+      // Primary sort: Higher confidence wins
+      if (b.confidence !== a.confidence) {
+        return b.confidence - a.confidence;
+      }
+      
+      // Tiebreaker: When confidence is equal
+      const edgeDiff = Math.abs(b.edge - a.edge);
+      
+      // If edge difference is significant (>2%), pick higher edge (better value)
+      if (edgeDiff > 0.02) {
+        return b.edge - a.edge;
+      }
+      
+      // If edges are close, pick higher win probability (safer)
+      return b.adjustedWinProb - a.adjustedWinProb;
+    });
   
   console.log(`[FIND_CANDIDATES] ${qualified.length} picks qualify (>= ${MIN_CONFIDENCE}% confidence)`);
   
   if (qualified.length > 0) {
-    console.log(`[SELECTED] ${qualified[0].sportTitle}: ${qualified[0].awayTeam} @ ${qualified[0].homeTeam} - ${qualified[0].confidence}% confidence`);
+    const winner = qualified[0];
+    console.log(`[SELECTED] ${winner.sportTitle}: ${winner.awayTeam} @ ${winner.homeTeam}`);
+    console.log(`  ├─ Confidence: ${winner.confidence}%`);
+    console.log(`  ├─ Edge: ${(winner.edge * 100).toFixed(1)}%`);
+    console.log(`  ├─ Win Probability: ${(winner.adjustedWinProb * 100).toFixed(1)}%`);
+    console.log(`  └─ Odds: ${winner.odds.toFixed(2)}`);
+    
+    // Show runner-ups if there were ties
+    const tiedPicks = qualified.filter(p => p.confidence === winner.confidence);
+    if (tiedPicks.length > 1) {
+      console.log(`[TIEBREAKER] ${tiedPicks.length} picks had ${winner.confidence}% confidence:`);
+      tiedPicks.forEach((pick, idx) => {
+        const symbol = idx === 0 ? '✓' : '✗';
+        console.log(`  ${symbol} ${pick.sportTitle}: Edge ${(pick.edge * 100).toFixed(1)}% | Win Prob ${(pick.adjustedWinProb * 100).toFixed(1)}%`);
+      });
+    }
   } else {
     console.log(`[SELECTED] No picks meet the ${MIN_CONFIDENCE}% confidence threshold today`);
   }
