@@ -17,6 +17,8 @@ export type Pick = {
   final_total: number | null;
   stake: number;
   profit: number | null;
+  edge: number | null;
+  adjusted_win_prob: number | null;
 };
 
 export type BoardData = {
@@ -115,6 +117,8 @@ export const getBoard = createServerFn({ method: "GET" }).handler(async (): Prom
             confidence: best.confidence,
             reasoning: best.reasoning,
             stake: STAKE,
+            edge: best.edge,                      // Store edge for Kelly
+            adjusted_win_prob: best.adjustedWinProb, // Store win prob for Kelly
           });
         }
       } catch (error) {
@@ -204,6 +208,17 @@ export const settlePick = createServerFn({ method: "POST" })
 
     if (updateError) {
       throw new Error("Failed to update pick");
+    }
+
+    // Apply Kelly bets to all active trackers
+    console.log(`[SETTLE_PICK] Pick ${data.pickId} settled as ${data.status}. Applying to Kelly trackers...`);
+    
+    try {
+      const { applyKellyBetToAllTrackers } = await import("@/lib/kelly.functions");
+      await applyKellyBetToAllTrackers(data.pickId);
+    } catch (kellyError) {
+      console.error("[SETTLE_PICK] Error applying Kelly bets:", kellyError);
+      // Don't fail the settlement if Kelly application fails
     }
 
     return { success: true, profit };

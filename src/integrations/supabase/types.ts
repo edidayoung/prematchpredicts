@@ -12,6 +12,118 @@ export type Database = {
   }
   public: {
     Tables: {
+      kelly_trackers: {
+        Row: {
+          id: string
+          name: string
+          starting_bankroll: number
+          current_bankroll: number
+          kelly_fraction: number
+          total_bets: number
+          wins: number
+          losses: number
+          pushes: number
+          total_staked: number
+          total_profit: number
+          roi: number
+          created_at: string
+          locked_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          starting_bankroll: number
+          current_bankroll: number
+          kelly_fraction?: number
+          total_bets?: number
+          wins?: number
+          losses?: number
+          pushes?: number
+          total_staked?: number
+          total_profit?: number
+          roi?: number
+          created_at?: string
+          locked_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          starting_bankroll?: number
+          current_bankroll?: number
+          kelly_fraction?: number
+          total_bets?: number
+          wins?: number
+          losses?: number
+          pushes?: number
+          total_staked?: number
+          total_profit?: number
+          roi?: number
+          created_at?: string
+          locked_at?: string
+        }
+        Relationships: []
+      }
+      kelly_bets: {
+        Row: {
+          id: string
+          tracker_id: string
+          pick_id: string
+          stake: number
+          result: string
+          profit: number
+          bankroll_before: number
+          bankroll_after: number
+          edge_used: number
+          win_prob_used: number
+          kelly_percentage: number
+          created_at: string
+          settled_at: string | null
+        }
+        Insert: {
+          id?: string
+          tracker_id: string
+          pick_id: string
+          stake: number
+          result: string
+          profit: number
+          bankroll_before: number
+          bankroll_after: number
+          edge_used: number
+          win_prob_used: number
+          kelly_percentage: number
+          created_at?: string
+          settled_at?: string | null
+        }
+        Update: {
+          id?: string
+          tracker_id?: string
+          pick_id?: string
+          stake?: number
+          result?: string
+          profit?: number
+          bankroll_before?: number
+          bankroll_after?: number
+          edge_used?: number
+          win_prob_used?: number
+          kelly_percentage?: number
+          created_at?: string
+          settled_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "kelly_bets_tracker_id_fkey"
+            columns: ["tracker_id"]
+            referencedRelation: "kelly_trackers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "kelly_bets_pick_id_fkey"
+            columns: ["pick_id"]
+            referencedRelation: "daily_picks"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       daily_picks: {
         Row: {
           away_team: string
@@ -34,6 +146,11 @@ export type Database = {
           sport_title: string
           stake: number
           status: string
+          sport_title: string
+          stake: number
+          status: string
+          edge: number | null
+          adjusted_win_prob: number | null
         }
         Insert: {
           away_team: string
@@ -56,6 +173,8 @@ export type Database = {
           sport_title: string
           stake?: number
           status?: string
+          edge?: number | null
+          adjusted_win_prob?: number | null
         }
         Update: {
           away_team?: string
@@ -78,6 +197,8 @@ export type Database = {
           sport_title?: string
           stake?: number
           status?: string
+          edge?: number | null
+          adjusted_win_prob?: number | null
         }
         Relationships: []
       }

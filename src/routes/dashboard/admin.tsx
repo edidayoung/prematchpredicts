@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { getBoard, settlePick, type Pick } from "@/lib/picks.functions";
+import { getKellyTrackers, deleteKellyTracker, type KellyTracker } from "@/lib/kelly.functions";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -8,17 +9,28 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { verifyAdminPin, isAdminAuthenticated } from "@/lib/admin-auth";
 import { getActiveSessions } from "@/lib/session-tracker";
 import { Users, Settings } from "lucide-react";
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/dashboard/admin")({
   loader: async () => {
     const board = await getBoard();
-    return { board };
+    const kellyTrackers = await getKellyTrackers();
+    return { board, kellyTrackers };
   },
   component: AdminPage,
 });
 
 function AdminPage() {
-  const { board } = Route.useLoaderData() as any;
+  const { board, kellyTrackers } = Route.useLoaderData() as any;
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   
@@ -36,6 +48,11 @@ function AdminPage() {
   const [settlementStatus, setSettlementStatus] = useState("");
   const [finalTotal, setFinalTotal] = useState("");
   const [settling, setSettling] = useState(false);
+
+  // Delete confirmation state
+  const [trackerToDelete, setTrackerToDelete] = useState<KellyTracker | null>(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const pendingPicks = board.history.filter((p: Pick) => p.status === "pending");
 
@@ -97,6 +114,33 @@ function AdminPage() {
       setError(err.message || "Settlement failed");
     } finally {
       setSettling(false);
+    }
+  };
+
+  const handleDeleteTracker = async () => {
+    if (!trackerToDelete) return;
+    
+    // Check if user typed the tracker name correctly
+    if (deleteConfirmation !== trackerToDelete.name) {
+      setError("Tracker name doesn't match. Deletion cancelled.");
+      setTrackerToDelete(null);
+      setDeleteConfirmation("");
+      return;
+    }
+
+    setDeleting(true);
+    setError(null);
+
+    try {
+      await deleteKellyTracker({ data: { trackerId: trackerToDelete.id } });
+      setMessage(`Tracker "${trackerToDelete.name}" deleted successfully`);
+      setTrackerToDelete(null);
+      setDeleteConfirmation("");
+      setTimeout(() => window.location.reload(), 1500);
+    } catch (err) {
+      setError("Failed to delete tracker");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -322,6 +366,102 @@ function AdminPage() {
           </p>
         </div>
       </section>
+
+      {/* Kelly Tracker Management */}
+      <section className="mt-8 rounded-2xl border border-border bg-card p-6">
+        <h2 className="text-lg font-bold text-foreground">Kelly Criterion Trackers</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Manage all Kelly Criterion bankroll trackers
+        </p>
+
+        {kellyTrackers.length === 0 ? (
+          <div className="mt-6 rounded-lg border border-dashed border-border p-8 text-center">
+            <p className="text-sm text-muted-foreground">
+              No Kelly trackers created yet
+            </p>
+          </div>
+        ) : (
+          <div className="mt-6 space-y-3">
+            {kellyTrackers.map((tracker: KellyTracker) => {
+              const profitLoss = Number(tracker.current_bankroll) - Number(tracker.starting_bankroll);
+              const isProfit = profitLoss >= 0;
+              
+              return (
+                <div
+                  key={tracker.id}
+                  className="flex items-center justify-between rounded-lg border border-border bg-secondary/20 p-4"
+                >
+                  <div className="flex-1">
+                    <p className="font-semibold text-foreground">{tracker.name}</p>
+                    <div className="mt-1 flex items-center gap-4 text-sm text-muted-foreground">
+                      <span>Current: ₦{Number(tracker.current_bankroll).toLocaleString()}</span>
+                      <span className={isProfit ? "text-success" : "text-destructive"}>
+                        {isProfit ? "+" : ""}₦{Math.abs(profitLoss).toLocaleString()}
+                      </span>
+                      <span>{tracker.total_bets} bets</span>
+                      <span>{tracker.wins}W-{tracker.losses}L</span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setTrackerToDelete(tracker)}
+                    className="ml-4 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm font-semibold text-destructive transition-colors hover:bg-destructive/20"
+                  >
+                    Delete
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+      
+      {/* Delete Tracker Confirmation Dialog */}
+      <AlertDialog open={!!trackerToDelete} onOpenChange={(open) => {
+        if (!open) {
+          setTrackerToDelete(null);
+          setDeleteConfirmation("");
+        }
+      }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>⚠️ Delete Kelly Tracker?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-3">
+              <p>
+                You are about to permanently delete the tracker <strong>"{trackerToDelete?.name}"</strong>.
+              </p>
+              <p className="text-destructive font-semibold">
+                This action cannot be undone. All bet history will be lost.
+              </p>
+              <div className="mt-4">
+                <Label htmlFor="delete-confirmation" className="text-foreground">
+                  Type the tracker name to confirm:
+                </Label>
+                <Input
+                  id="delete-confirmation"
+                  value={deleteConfirmation}
+                  onChange={(e) => setDeleteConfirmation(e.target.value)}
+                  placeholder={trackerToDelete?.name || ""}
+                  className="mt-2"
+                  disabled={deleting}
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => {
+                e.preventDefault();
+                handleDeleteTracker();
+              }}
+              disabled={deleting || deleteConfirmation !== trackerToDelete?.name}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete Permanently"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

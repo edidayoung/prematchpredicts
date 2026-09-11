@@ -1,7 +1,7 @@
 import { createFileRoute, Outlet, useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { isAuthenticated, logout } from "@/lib/auth";
-import { LayoutDashboard, TrendingUp, LogOut, Menu, X, Target, Flame, Settings } from "lucide-react";
+import { LayoutDashboard, TrendingUp, LogOut, Menu, X, Target, Flame, Settings, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getBoard } from "@/lib/picks.functions";
@@ -23,12 +23,11 @@ function DashboardLayout() {
     setSidebarOpen(!isMobile);
   }, [isMobile]);
 
-  // Fetch stats for streak
   useEffect(() => {
     getBoard().then((data) => {
       setStreak(data.stats.streak);
     });
-  }, [location.pathname]); // Refresh on route change
+  }, []);
 
   // Heartbeat: Update session every 30 seconds
   useEffect(() => {
@@ -68,6 +67,7 @@ function DashboardLayout() {
   const tabs = [
     { name: "Overview", path: "/dashboard", icon: LayoutDashboard },
     { name: "Predictions", path: "/dashboard/predictions", icon: TrendingUp },
+    { name: "Kelly Criterion", path: "/dashboard/kelly", icon: Wallet },
     { name: "Hits", path: "/dashboard/hits", icon: Target },
     { name: "Admin", path: "/dashboard/admin", icon: Settings },
   ];

@@ -15,7 +15,9 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardAdminRouteImport } from './routes/dashboard/admin'
 import { Route as DashboardHitsRouteImport } from './routes/dashboard/hits'
+import { Route as DashboardKellyRouteImport } from './routes/dashboard/kelly'
 import { Route as DashboardPredictionsRouteImport } from './routes/dashboard/predictions'
+import { Route as DashboardKellyTrackerIdRouteImport } from './routes/dashboard/kelly/$trackerId'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -47,10 +49,20 @@ const DashboardHitsRoute = DashboardHitsRouteImport.update({
   path: '/hits',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardKellyRoute = DashboardKellyRouteImport.update({
+  id: '/kelly',
+  path: '/kelly',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardPredictionsRoute = DashboardPredictionsRouteImport.update({
   id: '/predictions',
   path: '/predictions',
   getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardKellyTrackerIdRoute = DashboardKellyTrackerIdRouteImport.update({
+  id: '/$trackerId',
+  path: '/$trackerId',
+  getParentRoute: () => DashboardKellyRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -59,16 +71,20 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/dashboard/admin': typeof DashboardAdminRoute
   '/dashboard/hits': typeof DashboardHitsRoute
+  '/dashboard/kelly': typeof DashboardKellyRouteWithChildren
   '/dashboard/predictions': typeof DashboardPredictionsRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/kelly/$trackerId': typeof DashboardKellyTrackerIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/dashboard/admin': typeof DashboardAdminRoute
   '/dashboard/hits': typeof DashboardHitsRoute
+  '/dashboard/kelly': typeof DashboardKellyRouteWithChildren
   '/dashboard/predictions': typeof DashboardPredictionsRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/dashboard/kelly/$trackerId': typeof DashboardKellyTrackerIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -77,8 +93,10 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/dashboard/admin': typeof DashboardAdminRoute
   '/dashboard/hits': typeof DashboardHitsRoute
+  '/dashboard/kelly': typeof DashboardKellyRouteWithChildren
   '/dashboard/predictions': typeof DashboardPredictionsRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/kelly/$trackerId': typeof DashboardKellyTrackerIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -88,16 +106,20 @@ export interface FileRouteTypes {
     | '/login'
     | '/dashboard/admin'
     | '/dashboard/hits'
+    | '/dashboard/kelly'
     | '/dashboard/predictions'
     | '/dashboard/'
+    | '/dashboard/kelly/$trackerId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/login'
     | '/dashboard/admin'
     | '/dashboard/hits'
+    | '/dashboard/kelly'
     | '/dashboard/predictions'
     | '/dashboard'
+    | '/dashboard/kelly/$trackerId'
   id:
     | '__root__'
     | '/'
@@ -105,8 +127,10 @@ export interface FileRouteTypes {
     | '/login'
     | '/dashboard/admin'
     | '/dashboard/hits'
+    | '/dashboard/kelly'
     | '/dashboard/predictions'
     | '/dashboard/'
+    | '/dashboard/kelly/$trackerId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -159,6 +183,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardHitsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/kelly': {
+      id: '/dashboard/kelly'
+      path: '/kelly'
+      fullPath: '/dashboard/kelly'
+      preLoaderRoute: typeof DashboardKellyRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/predictions': {
       id: '/dashboard/predictions'
       path: '/predictions'
@@ -166,12 +197,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardPredictionsRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/kelly/$trackerId': {
+      id: '/dashboard/kelly/$trackerId'
+      path: '/$trackerId'
+      fullPath: '/dashboard/kelly/$trackerId'
+      preLoaderRoute: typeof DashboardKellyTrackerIdRouteImport
+      parentRoute: typeof DashboardKellyRoute
+    }
   }
 }
+
+interface DashboardKellyRouteChildren {
+  DashboardKellyTrackerIdRoute: typeof DashboardKellyTrackerIdRoute
+}
+
+const DashboardKellyRouteChildren: DashboardKellyRouteChildren = {
+  DashboardKellyTrackerIdRoute: DashboardKellyTrackerIdRoute,
+}
+
+const DashboardKellyRouteWithChildren = DashboardKellyRoute._addFileChildren(
+  DashboardKellyRouteChildren,
+)
 
 interface DashboardRouteChildren {
   DashboardAdminRoute: typeof DashboardAdminRoute
   DashboardHitsRoute: typeof DashboardHitsRoute
+  DashboardKellyRoute: typeof DashboardKellyRouteWithChildren
   DashboardPredictionsRoute: typeof DashboardPredictionsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
@@ -179,6 +230,7 @@ interface DashboardRouteChildren {
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardAdminRoute: DashboardAdminRoute,
   DashboardHitsRoute: DashboardHitsRoute,
+  DashboardKellyRoute: DashboardKellyRouteWithChildren,
   DashboardPredictionsRoute: DashboardPredictionsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
