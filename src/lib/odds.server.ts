@@ -15,6 +15,7 @@ export type Candidate = {
   reasoning: string;
   edge: number;        // Percentage edge (e.g., 0.169 = 16.9%)
   adjustedWinProb: number;  // Fair win probability (e.g., 0.508 = 50.8%)
+  lineEdge: number;    // Line advantage/disadvantage (e.g., -0.5 = 0.5 point disadvantage)
 };
 
 type Outcome = { name: string; price: number; point?: number };
@@ -260,6 +261,7 @@ function scoreEvent(
           reasoning,
           edge,                    // Store the edge value
           adjustedWinProb: adjusted, // Store the fair win probability
+          lineEdge,                // Store the line advantage/disadvantage
         };
       }
     }
@@ -336,13 +338,24 @@ export async function findCandidates(apiKey: string, dayIso: string): Promise<Ca
   
   // Log all candidates before filtering
   todays.forEach(s => {
-    console.log(`[CANDIDATE] ${s.candidate.sportTitle}: ${s.candidate.awayTeam} @ ${s.candidate.homeTeam} - ${s.candidate.confidence}% confidence | Edge: ${(s.candidate.edge * 100).toFixed(1)}% | Win Prob: ${(s.candidate.adjustedWinProb * 100).toFixed(1)}%`);
+    console.log(`[CANDIDATE] ${s.candidate.sportTitle}: ${s.candidate.awayTeam} @ ${s.candidate.homeTeam} - ${s.candidate.confidence}% confidence | Edge: ${(s.candidate.edge * 100).toFixed(1)}% | Win Prob: ${(s.candidate.adjustedWinProb * 100).toFixed(1)}% | Line Edge: ${s.candidate.lineEdge.toFixed(2)}`);
   });
   
-  // Filter by confidence threshold and sort with hybrid tiebreaker
+  // Filter by confidence threshold, line edge, and sort with hybrid tiebreaker
   const qualified = todays
     .map((s) => s.candidate)
-    .filter((c) => c.confidence >= MIN_CONFIDENCE)
+    .filter((c) => {
+      const passesConfidence = c.confidence >= MIN_CONFIDENCE;
+      const passesLineEdge = c.lineEdge >= -0.5;
+      
+      if (!passesConfidence) {
+        console.log(`[FILTERED] ${c.sportTitle}: ${c.awayTeam} @ ${c.homeTeam} - Rejected: confidence ${c.confidence}% < ${MIN_CONFIDENCE}%`);
+      } else if (!passesLineEdge) {
+        console.log(`[FILTERED] ${c.sportTitle}: ${c.awayTeam} @ ${c.homeTeam} - Rejected: line edge ${c.lineEdge.toFixed(2)} < -0.5 (too much disadvantage)`);
+      }
+      
+      return passesConfidence && passesLineEdge;
+    })
     .sort((a, b) => {
       // Primary sort: Higher confidence wins
       if (b.confidence !== a.confidence) {
@@ -361,7 +374,7 @@ export async function findCandidates(apiKey: string, dayIso: string): Promise<Ca
       return b.adjustedWinProb - a.adjustedWinProb;
     });
   
-  console.log(`[FIND_CANDIDATES] ${qualified.length} picks qualify (>= ${MIN_CONFIDENCE}% confidence)`);
+  console.log(`[FIND_CANDIDATES] ${qualified.length} picks qualify (>= ${MIN_CONFIDENCE}% confidence AND lineEdge >= -0.5)`);
   
   if (qualified.length > 0) {
     const winner = qualified[0];
@@ -369,6 +382,7 @@ export async function findCandidates(apiKey: string, dayIso: string): Promise<Ca
     console.log(`  ├─ Confidence: ${winner.confidence}%`);
     console.log(`  ├─ Edge: ${(winner.edge * 100).toFixed(1)}%`);
     console.log(`  ├─ Win Probability: ${(winner.adjustedWinProb * 100).toFixed(1)}%`);
+    console.log(`  ├─ Line Edge: ${winner.lineEdge.toFixed(2)}`);
     console.log(`  └─ Odds: ${winner.odds.toFixed(2)}`);
     
     // Show runner-ups if there were ties
@@ -377,11 +391,11 @@ export async function findCandidates(apiKey: string, dayIso: string): Promise<Ca
       console.log(`[TIEBREAKER] ${tiedPicks.length} picks had ${winner.confidence}% confidence:`);
       tiedPicks.forEach((pick, idx) => {
         const symbol = idx === 0 ? '✓' : '✗';
-        console.log(`  ${symbol} ${pick.sportTitle}: Edge ${(pick.edge * 100).toFixed(1)}% | Win Prob ${(pick.adjustedWinProb * 100).toFixed(1)}%`);
+        console.log(`  ${symbol} ${pick.sportTitle}: Edge ${(pick.edge * 100).toFixed(1)}% | Win Prob ${(pick.adjustedWinProb * 100).toFixed(1)}% | Line Edge ${pick.lineEdge.toFixed(2)}`);
       });
     }
   } else {
-    console.log(`[SELECTED] No picks meet the ${MIN_CONFIDENCE}% confidence threshold today`);
+    console.log(`[SELECTED] No picks meet the ${MIN_CONFIDENCE}% confidence AND lineEdge >= -0.5 threshold today`);
   }
   
   return qualified;
