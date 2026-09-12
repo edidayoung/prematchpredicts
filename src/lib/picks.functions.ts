@@ -19,6 +19,8 @@ export type Pick = {
   profit: number | null;
   edge: number | null;
   adjusted_win_prob: number | null;
+  line_edge: number | null;
+  bookmaker_spread: number | null;
 };
 
 export type BoardData = {
@@ -119,6 +121,8 @@ export const getBoard = createServerFn({ method: "GET" }).handler(async (): Prom
             stake: STAKE,
             edge: best.edge,                      // Store edge for Kelly
             adjusted_win_prob: best.adjustedWinProb, // Store win prob for Kelly
+            line_edge: best.lineEdge,             // Store line edge for analytics
+            bookmaker_spread: best.bookmakerSpread, // Store spread for analytics
           });
         }
       } catch (error) {

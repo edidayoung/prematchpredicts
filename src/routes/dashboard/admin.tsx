@@ -195,12 +195,9 @@ function AdminPage() {
   return (
     <div className="min-h-screen p-8">
       <header className="mb-9">
-        <p className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">Admin Panel</p>
-        <h1 className="mt-2 text-3xl font-black tracking-tight text-foreground sm:text-5xl">
-          Data Management
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-          Manually settle pending games.
+        <h1 className="text-3xl font-bold mb-2">Admin Panel</h1>
+        <p className="text-muted-foreground">
+          Manage predictions, settle games, and view active users
         </p>
       </header>
 

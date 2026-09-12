@@ -16,6 +16,7 @@ export type Candidate = {
   edge: number;        // Percentage edge (e.g., 0.169 = 16.9%)
   adjustedWinProb: number;  // Fair win probability (e.g., 0.508 = 50.8%)
   lineEdge: number;    // Line advantage/disadvantage (e.g., -0.5 = 0.5 point disadvantage)
+  bookmakerSpread: number;  // Difference between highest and lowest bookmaker lines
 };
 
 type Outcome = { name: string; price: number; point?: number };
@@ -262,6 +263,7 @@ function scoreEvent(
           edge,                    // Store the edge value
           adjustedWinProb: adjusted, // Store the fair win probability
           lineEdge,                // Store the line advantage/disadvantage
+          bookmakerSpread: spread, // Store bookmaker agreement spread
         };
       }
     }
@@ -391,7 +393,8 @@ export async function findCandidates(apiKey: string, dayIso: string): Promise<Ca
       console.log(`[TIEBREAKER] ${tiedPicks.length} picks had ${winner.confidence}% confidence:`);
       tiedPicks.forEach((pick, idx) => {
         const symbol = idx === 0 ? '✓' : '✗';
-        console.log(`  ${symbol} ${pick.sportTitle}: Edge ${(pick.edge * 100).toFixed(1)}% | Win Prob ${(pick.adjustedWinProb * 100).toFixed(1)}% | Line Edge ${pick.lineEdge.toFixed(2)}`);
+        console.log(`  ${symbol} ${pick.sportTitle}: ${pick.awayTeam} @ ${pick.homeTeam}`);
+        console.log(`     ${pick.selection} ${pick.line} @ ${pick.odds.toFixed(2)} | Edge ${(pick.edge * 100).toFixed(1)}% | Win Prob ${(pick.adjustedWinProb * 100).toFixed(1)}% | Line Edge ${pick.lineEdge.toFixed(2)}`);
       });
     }
   } else {

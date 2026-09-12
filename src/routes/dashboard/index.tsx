@@ -9,10 +9,32 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PageLoader } from "@/components/ui/page-loader";
+import { LocationTimeBadge } from "@/components/site/location-time-badge";
 
 export const Route = createFileRoute("/dashboard/")({
   loader: () => getBoard(),
   component: OverviewPage,
+  pendingComponent: () => (
+    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
+      {/* Show header immediately */}
+      <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground sm:text-3xl">
+              Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 18 ? 'afternoon' : 'evening'} 👋
+            </h1>
+            <p className="mt-2 text-sm text-muted-foreground sm:text-base">
+              Here's your prediction overview. Keep winning!
+            </p>
+          </div>
+          <LocationTimeBadge />
+        </div>
+      </div>
+      {/* Loader for content */}
+      <PageLoader fullScreen={false} />
+    </div>
+  ),
 });
 
 function PickDetailModal({ pick, open, onClose }: { pick: Pick; open: boolean; onClose: () => void }) {
@@ -146,10 +168,7 @@ function OverviewPage() {
               Here's your prediction overview. Keep winning!
             </p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            <div className="h-2 w-2 animate-pulse rounded-full bg-[#10B981]" />
-            <span>Live · Auto-refresh</span>
-          </div>
+          <LocationTimeBadge />
         </div>
       </div>
 

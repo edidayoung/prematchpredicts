@@ -7,7 +7,8 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { type ReactNode } from "react";
+import { type ReactNode, useState, useEffect } from "react";
+import { PageLoader } from "@/components/ui/page-loader";
 
 import appCss from "../styles.css?url";
 
@@ -110,11 +111,44 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const [isReady, setIsReady] = useState(false);
+  const [showContent, setShowContent] = useState(false);
+
+  // Professional loading: ensure DOM is ready and minimum display time
+  useEffect(() => {
+    // Wait for DOM content to be fully loaded
+    const handleReady = () => {
+      // Minimum loading time for smooth UX (prevents flash)
+      setTimeout(() => {
+        setIsReady(true);
+        // Add small delay before showing content for smooth fade-in
+        setTimeout(() => setShowContent(true), 50);
+      }, 1000); // 1 second minimum for professional feel
+    };
+
+    if (document.readyState === 'complete') {
+      handleReady();
+    } else {
+      window.addEventListener('load', handleReady);
+      return () => window.removeEventListener('load', handleReady);
+    }
+  }, []);
+
+  // Keep showing loader until content is ready
+  if (!isReady) {
+    return <PageLoader />;
+  }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
-    </QueryClientProvider>
+    <div 
+      className={`transition-opacity duration-300 ${
+        showContent ? 'opacity-100' : 'opacity-0'
+      }`}
+    >
+      <QueryClientProvider client={queryClient}>
+        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+        <Outlet />
+      </QueryClientProvider>
+    </div>
   );
 }

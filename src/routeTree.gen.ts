@@ -14,6 +14,7 @@ import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as DashboardAdminRouteImport } from './routes/dashboard/admin'
+import { Route as DashboardAnalyticsRouteImport } from './routes/dashboard/analytics'
 import { Route as DashboardHitsRouteImport } from './routes/dashboard/hits'
 import { Route as DashboardKellyRouteImport } from './routes/dashboard/kelly'
 import { Route as DashboardPredictionsRouteImport } from './routes/dashboard/predictions'
@@ -44,6 +45,11 @@ const DashboardAdminRoute = DashboardAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardAnalyticsRoute = DashboardAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => DashboardRoute,
+} as any)
 const DashboardHitsRoute = DashboardHitsRouteImport.update({
   id: '/hits',
   path: '/hits',
@@ -70,6 +76,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRouteWithChildren
   '/login': typeof LoginRoute
   '/dashboard/admin': typeof DashboardAdminRoute
+  '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/hits': typeof DashboardHitsRoute
   '/dashboard/kelly': typeof DashboardKellyRouteWithChildren
   '/dashboard/predictions': typeof DashboardPredictionsRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/dashboard/admin': typeof DashboardAdminRoute
+  '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/hits': typeof DashboardHitsRoute
   '/dashboard/kelly': typeof DashboardKellyRouteWithChildren
   '/dashboard/predictions': typeof DashboardPredictionsRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRouteWithChildren
   '/login': typeof LoginRoute
   '/dashboard/admin': typeof DashboardAdminRoute
+  '/dashboard/analytics': typeof DashboardAnalyticsRoute
   '/dashboard/hits': typeof DashboardHitsRoute
   '/dashboard/kelly': typeof DashboardKellyRouteWithChildren
   '/dashboard/predictions': typeof DashboardPredictionsRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/dashboard/admin'
+    | '/dashboard/analytics'
     | '/dashboard/hits'
     | '/dashboard/kelly'
     | '/dashboard/predictions'
@@ -115,6 +125,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/dashboard/admin'
+    | '/dashboard/analytics'
     | '/dashboard/hits'
     | '/dashboard/kelly'
     | '/dashboard/predictions'
@@ -126,6 +137,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/login'
     | '/dashboard/admin'
+    | '/dashboard/analytics'
     | '/dashboard/hits'
     | '/dashboard/kelly'
     | '/dashboard/predictions'
@@ -176,6 +188,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardAdminRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/analytics': {
+      id: '/dashboard/analytics'
+      path: '/analytics'
+      fullPath: '/dashboard/analytics'
+      preLoaderRoute: typeof DashboardAnalyticsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
     '/dashboard/hits': {
       id: '/dashboard/hits'
       path: '/hits'
@@ -221,6 +240,7 @@ const DashboardKellyRouteWithChildren = DashboardKellyRoute._addFileChildren(
 
 interface DashboardRouteChildren {
   DashboardAdminRoute: typeof DashboardAdminRoute
+  DashboardAnalyticsRoute: typeof DashboardAnalyticsRoute
   DashboardHitsRoute: typeof DashboardHitsRoute
   DashboardKellyRoute: typeof DashboardKellyRouteWithChildren
   DashboardPredictionsRoute: typeof DashboardPredictionsRoute
@@ -229,6 +249,7 @@ interface DashboardRouteChildren {
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardAdminRoute: DashboardAdminRoute,
+  DashboardAnalyticsRoute: DashboardAnalyticsRoute,
   DashboardHitsRoute: DashboardHitsRoute,
   DashboardKellyRoute: DashboardKellyRouteWithChildren,
   DashboardPredictionsRoute: DashboardPredictionsRoute,

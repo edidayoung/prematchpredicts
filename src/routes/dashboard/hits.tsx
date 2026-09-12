@@ -9,10 +9,24 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { PageLoader } from "@/components/ui/page-loader";
 
 export const Route = createFileRoute("/dashboard/hits")({
   loader: () => getBoard(),
   component: HitsPage,
+  pendingComponent: () => (
+    <div className="min-h-screen p-8">
+      {/* Show header immediately */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-foreground">Hits Calendar</h1>
+        <p className="mt-2 text-muted-foreground">
+          Visual history of all your predictions
+        </p>
+      </div>
+      {/* Loader for content */}
+      <PageLoader fullScreen={false} />
+    </div>
+  ),
 });
 
 function HitsPage() {

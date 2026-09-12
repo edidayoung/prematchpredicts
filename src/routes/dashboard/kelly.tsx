@@ -14,6 +14,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { TrendingUp, Wallet, Plus, ChevronRight } from "lucide-react";
+import { PageLoader } from "@/components/ui/page-loader";
 
 export const Route = createFileRoute("/dashboard/kelly")({
   loader: async () => {
@@ -22,6 +23,21 @@ export const Route = createFileRoute("/dashboard/kelly")({
     return { trackers, board };
   },
   component: KellyPage,
+  pendingComponent: () => (
+    <div className="min-h-screen p-8">
+      {/* Show header immediately */}
+      <div className="mb-8 flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Kelly Criterion</h1>
+          <p className="text-muted-foreground">
+            Mathematically optimal bet sizing for each pick based on your bankroll and the model's edge
+          </p>
+        </div>
+      </div>
+      {/* Loader for content */}
+      <PageLoader fullScreen={false} />
+    </div>
+  ),
 });
 
 function CreateTrackerDialog({ onCreated }: { onCreated: () => void }) {
@@ -232,14 +248,9 @@ function KellyPage() {
       {/* Header */}
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.35em] text-accent">
-            Bankroll Management
-          </p>
-          <h1 className="mt-2 text-3xl font-black tracking-tight text-foreground sm:text-5xl">
-            Kelly Criterion
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Mathematically optimal bet sizing for each pick based on your bankroll and the model's edge.
+          <h1 className="text-3xl font-bold mb-2">Kelly Criterion</h1>
+          <p className="text-muted-foreground">
+            Mathematically optimal bet sizing for each pick based on your bankroll and the model's edge
           </p>
         </div>
         <CreateTrackerDialog onCreated={handleTrackerCreated} />

@@ -43,7 +43,7 @@ function LoginPage() {
           <img 
             src="/Logo.png" 
             alt="PrematchPredicts" 
-            className="mx-auto h-16 w-auto drop-shadow-[0_0_12px_rgba(255,255,255,0.6)]"
+            className="mx-auto h-16 w-auto"
           />
           <h1 className="mt-6 text-2xl font-bold text-foreground">
             Welcome Back
