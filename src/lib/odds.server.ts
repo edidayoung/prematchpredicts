@@ -340,7 +340,7 @@ export async function findCandidates(apiKey: string, dayIso: string): Promise<Ca
   
   // Log all candidates before filtering
   todays.forEach(s => {
-    console.log(`[CANDIDATE] ${s.candidate.sportTitle}: ${s.candidate.awayTeam} @ ${s.candidate.homeTeam} - ${s.candidate.confidence}% confidence | Edge: ${(s.candidate.edge * 100).toFixed(1)}% | Win Prob: ${(s.candidate.adjustedWinProb * 100).toFixed(1)}% | Line Edge: ${s.candidate.lineEdge.toFixed(2)}`);
+    console.log(`[CANDIDATE] ${s.candidate.sportTitle}: ${s.candidate.awayTeam} @ ${s.candidate.homeTeam} - ${s.candidate.confidence}% confidence | Edge: ${(s.candidate.edge * 100).toFixed(1)}% | Win Prob: ${(s.candidate.adjustedWinProb * 100).toFixed(1)}% | Line Edge: ${s.candidate.lineEdge.toFixed(2)} | Spread: ${s.candidate.bookmakerSpread.toFixed(2)}`);
   });
   
   // Filter by confidence threshold, line edge, and sort with hybrid tiebreaker
@@ -385,6 +385,7 @@ export async function findCandidates(apiKey: string, dayIso: string): Promise<Ca
     console.log(`  ├─ Edge: ${(winner.edge * 100).toFixed(1)}%`);
     console.log(`  ├─ Win Probability: ${(winner.adjustedWinProb * 100).toFixed(1)}%`);
     console.log(`  ├─ Line Edge: ${winner.lineEdge.toFixed(2)}`);
+    console.log(`  ├─ Bookmaker Spread: ${winner.bookmakerSpread.toFixed(2)}`);
     console.log(`  └─ Odds: ${winner.odds.toFixed(2)}`);
     
     // Show runner-ups if there were ties
@@ -394,7 +395,7 @@ export async function findCandidates(apiKey: string, dayIso: string): Promise<Ca
       tiedPicks.forEach((pick, idx) => {
         const symbol = idx === 0 ? '✓' : '✗';
         console.log(`  ${symbol} ${pick.sportTitle}: ${pick.awayTeam} @ ${pick.homeTeam}`);
-        console.log(`     ${pick.selection} ${pick.line} @ ${pick.odds.toFixed(2)} | Edge ${(pick.edge * 100).toFixed(1)}% | Win Prob ${(pick.adjustedWinProb * 100).toFixed(1)}% | Line Edge ${pick.lineEdge.toFixed(2)}`);
+        console.log(`     ${pick.selection} ${pick.line} @ ${pick.odds.toFixed(2)} | Edge ${(pick.edge * 100).toFixed(1)}% | Win Prob ${(pick.adjustedWinProb * 100).toFixed(1)}% | Line Edge ${pick.lineEdge.toFixed(2)} | Spread ${pick.bookmakerSpread.toFixed(2)}`);
       });
     }
   } else {
